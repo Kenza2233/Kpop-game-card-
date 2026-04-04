@@ -1,5 +1,5 @@
 import { CollectionProvider } from '@/context/CollectionContext';
-import { Navbar } from '@/components/Navbar';
+import { AchievementProvider } from '@/components/AchievementToast';
 import { Righteous, Inter } from 'next/font/google';
 import './globals.css';
 
@@ -28,12 +28,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${righteous.variable} ${inter.variable}`}>
-      <body className="antialiased font-body bg-kpop-dark text-white pb-24 md:pb-0 md:pt-20">
+      <body className="antialiased font-body bg-kpop-dark text-white pb-24 md:pb-0">
         <CollectionProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
+          <AchievementProvider>
+            <main className="min-h-screen">
+              {children}
+            </main>
+          </AchievementProvider>
         </CollectionProvider>
       </body>
     </html>

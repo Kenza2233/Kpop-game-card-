@@ -10,7 +10,7 @@ const INITIAL_BANNERS: Banner[] = [
     type: 'standard',
     description: 'Pull all your favorite idols from the standard pool!',
     startDate: '2023-01-01',
-    endDate: '2025-12-31',
+    endDate: '2028-12-31',
     image: 'https://images.unsplash.com/photo-1619983081563-430f63602796?auto=format&fit=crop&q=80&w=800',
   },
   {
@@ -19,8 +19,8 @@ const INITIAL_BANNERS: Banner[] = [
     type: 'featured',
     description: '50% chance for aespa members on UR/SSR pulls!',
     rateUpCards: ['1', '2'], // Mock IDs
-    startDate: '2024-03-01',
-    endDate: '2024-03-07',
+    startDate: '2023-01-01',
+    endDate: '2028-12-31',
     image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&q=80&w=800',
   },
   {
@@ -28,8 +28,8 @@ const INITIAL_BANNERS: Banner[] = [
     name: 'Born Pink Exclusive',
     type: 'limited',
     description: 'Limited edition BLACKPINK cards! Only available for 14 days.',
-    startDate: '2024-03-01',
-    endDate: '2024-03-14',
+    startDate: '2023-01-01',
+    endDate: '2028-12-31',
     image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800',
   },
 ];

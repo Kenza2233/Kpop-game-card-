@@ -15,9 +15,10 @@ import {
   SPARK_POINTS_PER_PULL,
   DAILY_BONUS,
   DUPLICATE_REWARDS,
-  GachaPullResult
+  GachaPullResult,
+  Banner
 } from '../lib/types';
-import { processCards, deduplicateCards } from '../lib/cardUtils';
+import { processCards, deduplicateCards, generateInstanceId } from '../lib/cardUtils';
 import { fetchCardData } from '../lib/dataFetcher';
 
 interface CollectionState {
@@ -42,8 +43,8 @@ interface CollectionContextType {
   state: CollectionState;
   loading: boolean;
   isSaving: boolean;
-  pullCard: (bannerType: BannerType, count: number) => GachaPullResult[];
-  claimFreePull: () => GachaPullResult | null;
+  pullCard: (banner: Banner, count: number) => GachaPullResult[];
+  claimFreePull: (banner: Banner) => GachaPullResult | null;
   claimDailyBonus: () => { coins: number; streakDay: number; message: string };
   convertDuplicates: () => { cardsRemoved: number; coinsGained: number };
   sparkCard: (bannerId: string, cardId: string) => OwnedCard | null;
@@ -102,7 +103,6 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Migration logic could go here
         setState(parsed);
       } catch (e) {
         console.error('Corrupted state in localStorage, resetting to defaults');
@@ -125,7 +125,6 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         setIsSaving(false);
       } catch (e) {
         console.error('Storage full or error saving state:', e);
-        alert('Could not save progress. Storage may be full!');
         setIsSaving(false);
       }
     }, 500);
@@ -135,84 +134,105 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     };
   }, [state, loading]);
 
-  const performSinglePull = useCallback((bannerType: BannerType, isFree: boolean = false, bannerId: string = 'standard'): GachaPullResult => {
+  const calculateSoftPity = useCallback((currentCount: number, grade: 'UR' | 'SSR'): number => {
+    const config = SOFT_PITY[grade];
+    if (currentCount < config.start) return 0;
+    return (currentCount - config.start + 1) * config.increase;
+  }, []);
+
+  const getPullRates = useCallback((pullCountUR: number, pullCountSSR: number) => {
+    let rates = { ...BASE_RATES };
+    rates.UR += calculateSoftPity(pullCountUR, 'UR');
+    rates.SSR += calculateSoftPity(pullCountSSR, 'SSR');
+
+    const totalHighRarity = rates.UR + rates.SSR;
+    if (totalHighRarity > 100) {
+      rates.UR = (rates.UR / totalHighRarity) * 100;
+      rates.SSR = (rates.SSR / totalHighRarity) * 100;
+      rates.SR = 0;
+      rates.R = 0;
+    } else if (totalHighRarity + rates.SR > 100) {
+      rates.SR = 100 - totalHighRarity;
+      rates.R = 0;
+    } else {
+      rates.R = 100 - (totalHighRarity + rates.SR);
+    }
+
+    return rates;
+  }, [calculateSoftPity]);
+
+  const performSinglePullLogic = useCallback((
+    banner: Banner,
+    allCardsPool: KpopCard[],
+    urCounter: number,
+    ssrCounter: number,
+    forceSRPlus: boolean = false
+  ): { result: GachaPullResult; nextUR: number; nextSSR: number } => {
     let grade: Grade = 'R';
     let pityTriggered = false;
 
-    // Hard Pity Check
-    if (state.urPityCounter + 1 >= HARD_PITY.UR) {
+    if (urCounter + 1 >= HARD_PITY.UR) {
       grade = 'UR';
       pityTriggered = true;
-    } else if (state.ssrPityCounter + 1 >= HARD_PITY.SSR) {
+    } else if (ssrCounter + 1 >= HARD_PITY.SSR) {
       grade = 'SSR';
       pityTriggered = true;
     } else {
-      // Soft Pity Rates
-      let rates = { ...BASE_RATES };
-      if (state.urPityCounter >= SOFT_PITY.UR.start) {
-        rates.UR += (state.urPityCounter - SOFT_PITY.UR.start + 1) * SOFT_PITY.UR.increase;
-      }
-      if (state.ssrPityCounter >= SOFT_PITY.SSR.start) {
-        rates.SSR += (state.ssrPityCounter - SOFT_PITY.SSR.start + 1) * SOFT_PITY.SSR.increase;
-      }
-
+      const rates = getPullRates(urCounter, ssrCounter);
       const random = Math.random() * 100;
+
       if (random < rates.UR) grade = 'UR';
       else if (random < rates.UR + rates.SSR) grade = 'SSR';
       else if (random < rates.UR + rates.SSR + rates.SR) grade = 'SR';
       else grade = 'R';
     }
 
-    // Filter pool
-    let pool = allCards.filter(c => c.grade === grade);
-    if (pool.length === 0) pool = allCards;
+    if (forceSRPlus && grade === 'R') {
+       const random = Math.random() * 35;
+       if (random < 30) grade = 'SR';
+       else if (random < 34.5) grade = 'SSR';
+       else grade = 'UR';
+    }
+
+    let pool = allCardsPool.filter(c => c.grade === grade);
+    if (pool.length === 0) pool = allCardsPool;
+
+    let isRateUp = false;
+    if (banner.type === 'featured' && (grade === 'UR' || grade === 'SSR') && banner.rateUpCards) {
+        if (Math.random() < 0.5) {
+            const rateUpPool = pool.filter(c => banner.rateUpCards?.includes(c.id));
+            if (rateUpPool.length > 0) {
+                pool = rateUpPool;
+                isRateUp = true;
+            }
+        }
+    }
 
     const selectedCard = pool[Math.floor(Math.random() * pool.length)];
     const isNewCard = !state.ownedCards.some(oc => oc.id === selectedCard.id);
 
     const newOwnedCard: OwnedCard = {
       ...selectedCard,
-      instanceId: Math.random().toString(36).substring(2, 11),
+      instanceId: generateInstanceId(),
       acquiredAt: Date.now(),
       pullCount: state.totalPulls + 1,
-      fromBanner: bannerType,
+      fromBanner: banner.type,
     };
-
-    // Update Counters
-    const nextURPity = grade === 'UR' ? 0 : state.urPityCounter + 1;
-    const nextSSRPity = (grade === 'UR' || grade === 'SSR') ? 0 : state.ssrPityCounter + 1;
-    const pointsEarned = SPARK_POINTS_PER_PULL[grade];
-
-    setState(prev => ({
-      ...prev,
-      ownedCards: [...prev.ownedCards, newOwnedCard],
-      totalPulls: prev.totalPulls + 1,
-      urPityCounter: nextURPity,
-      ssrPityCounter: nextSSRPity,
-      sparkPoints: {
-        ...prev.sparkPoints,
-        [bannerId]: (prev.sparkPoints[bannerId] || 0) + pointsEarned
-      },
-      pullHistory: [{
-        pullNumber: prev.totalPulls + 1,
-        card: newOwnedCard,
-        banner: bannerType,
-        timestamp: Date.now(),
-        currencySpent: isFree ? 0 : PULL_COSTS.SINGLE
-      }, ...prev.pullHistory].slice(0, 100)
-    }));
 
     return {
-      card: newOwnedCard,
-      isRateUp: false,
-      isNewCard,
-      pityTriggered,
-      isDuplicate: !isNewCard
+      result: {
+        card: newOwnedCard,
+        isRateUp,
+        isNewCard,
+        pityTriggered,
+        isDuplicate: !isNewCard
+      },
+      nextUR: grade === 'UR' ? 0 : urCounter + 1,
+      nextSSR: (grade === 'UR' || grade === 'SSR') ? 0 : ssrCounter + 1
     };
-  }, [allCards, state.ownedCards, state.urPityCounter, state.ssrPityCounter, state.totalPulls]);
+  }, [getPullRates, state.ownedCards, state.totalPulls]);
 
-  // COMPLETE IMPLEMENTATION OF pullCard using functional update
-  const pullCardComplete = useCallback((bannerType: BannerType, count: number): GachaPullResult[] => {
+  const pullCard = useCallback((banner: Banner, count: number): GachaPullResult[] => {
     const cost = count === 10 ? PULL_COSTS.TEN : PULL_COSTS.SINGLE;
     if (state.currency < cost) {
       alert('Not enough coins!');
@@ -226,64 +246,31 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     let currentSparkPoints = { ...state.sparkPoints };
     let newOwnedCards: OwnedCard[] = [];
     let newHistory: PullHistoryEntry[] = [];
+    let hasSRPlus = false;
 
     for (let i = 0; i < count; i++) {
-        let grade: Grade = 'R';
-        let pityTriggered = false;
+        const forceSRPlus = (count === 10 && i === 9 && !hasSRPlus);
+        const { result, nextUR, nextSSR } = performSinglePullLogic(banner, allCards, currentURPity, currentSSRPity, forceSRPlus);
 
-        if (currentURPity + 1 >= HARD_PITY.UR) {
-            grade = 'UR';
-            pityTriggered = true;
-        } else if (currentSSRPity + 1 >= HARD_PITY.SSR) {
-            grade = 'SSR';
-            pityTriggered = true;
-        } else {
-            let rates = { ...BASE_RATES };
-            if (currentURPity >= SOFT_PITY.UR.start) rates.UR += (currentURPity - SOFT_PITY.UR.start + 1) * SOFT_PITY.UR.increase;
-            if (currentSSRPity >= SOFT_PITY.SSR.start) rates.SSR += (currentSSRPity - SOFT_PITY.SSR.start + 1) * SOFT_PITY.SSR.increase;
+        if (result.card.grade !== 'R') hasSRPlus = true;
 
-            const random = Math.random() * 100;
-            if (random < rates.UR) grade = 'UR';
-            else if (random < rates.UR + rates.SSR) grade = 'SSR';
-            else if (random < rates.UR + rates.SSR + rates.SR) grade = 'SR';
-            else grade = 'R';
-        }
-
-        let pool = allCards.filter(c => c.grade === grade);
-        if (pool.length === 0) pool = allCards;
-        const selectedCard = pool[Math.floor(Math.random() * pool.length)];
-        const isNewCard = !state.ownedCards.some(oc => oc.id === selectedCard.id) && !newOwnedCards.some(oc => oc.id === selectedCard.id);
-
-        const newOwnedCard: OwnedCard = {
-            ...selectedCard,
-            instanceId: Math.random().toString(36).substring(2, 11),
-            acquiredAt: Date.now(),
-            pullCount: currentTotalPulls + 1,
-            fromBanner: bannerType,
-        };
-
-        currentURPity = grade === 'UR' ? 0 : currentURPity + 1;
-        currentSSRPity = (grade === 'UR' || grade === 'SSR') ? 0 : currentSSRPity + 1;
+        currentURPity = nextUR;
+        currentSSRPity = nextSSR;
         currentTotalPulls++;
-        const points = SPARK_POINTS_PER_PULL[grade];
-        currentSparkPoints[state.currentBannerId] = (currentSparkPoints[state.currentBannerId] || 0) + points;
 
-        newOwnedCards.push(newOwnedCard);
+        const points = SPARK_POINTS_PER_PULL[result.card.grade as Grade || 'R'];
+        currentSparkPoints[banner.id] = (currentSparkPoints[banner.id] || 0) + points;
+
+        newOwnedCards.push(result.card);
         newHistory.push({
             pullNumber: currentTotalPulls,
-            card: newOwnedCard,
-            banner: bannerType,
+            card: result.card,
+            banner: banner.type,
             timestamp: Date.now(),
             currencySpent: count === 10 ? PULL_COSTS.TEN / 10 : PULL_COSTS.SINGLE
         });
 
-        results.push({
-            card: newOwnedCard,
-            isRateUp: false,
-            isNewCard,
-            pityTriggered,
-            isDuplicate: !isNewCard
-        });
+        results.push(result);
     }
 
     setState(prev => ({
@@ -298,9 +285,9 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     }));
 
     return results;
-  }, [allCards, state.currency, state.urPityCounter, state.ssrPityCounter, state.totalPulls, state.sparkPoints, state.ownedCards, state.currentBannerId]);
+  }, [allCards, state.currency, state.urPityCounter, state.ssrPityCounter, state.totalPulls, state.sparkPoints, performSinglePullLogic]);
 
-  const claimFreePull = useCallback((): GachaPullResult | null => {
+  const claimFreePull = useCallback((banner: Banner): GachaPullResult | null => {
     const now = Date.now();
     const COOL_DOWN = 24 * 60 * 60 * 1000;
     if (state.lastFreePull && now - state.lastFreePull < COOL_DOWN) {
@@ -308,10 +295,33 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    const res = performSinglePull('standard', true, state.currentBannerId);
-    setState(prev => ({ ...prev, lastFreePull: now }));
-    return res;
-  }, [state.lastFreePull, state.currentBannerId, performSinglePull]);
+    const { result, nextUR, nextSSR } = performSinglePullLogic(banner, allCards, state.urPityCounter, state.ssrPityCounter, false);
+
+    setState(prev => {
+        const points = SPARK_POINTS_PER_PULL[result.card.grade as Grade || 'R'];
+        return {
+            ...prev,
+            lastFreePull: now,
+            ownedCards: [...prev.ownedCards, result.card],
+            totalPulls: prev.totalPulls + 1,
+            urPityCounter: nextUR,
+            ssrPityCounter: nextSSR,
+            sparkPoints: {
+                ...prev.sparkPoints,
+                [banner.id]: (prev.sparkPoints[banner.id] || 0) + points
+            },
+            pullHistory: [{
+                pullNumber: prev.totalPulls + 1,
+                card: result.card,
+                banner: banner.type,
+                timestamp: now,
+                currencySpent: 0
+            }, ...prev.pullHistory].slice(0, 100)
+        };
+    });
+
+    return result;
+  }, [state.lastFreePull, state.urPityCounter, state.ssrPityCounter, performSinglePullLogic, allCards]);
 
   const claimDailyBonus = useCallback(() => {
     const now = new Date();
@@ -351,7 +361,6 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     let coinsGained = 0;
     let cardsRemoved = 0;
 
-    // Sorting by acquiredAt ensures we keep the oldest copy if we want, or just any copy.
     state.ownedCards.forEach(card => {
        if (!seen.has(card.id)) {
          seen.add(card.id);
@@ -383,7 +392,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
     const newOwnedCard: OwnedCard = {
       ...card,
-      instanceId: Math.random().toString(36).substring(2, 11),
+      instanceId: generateInstanceId(),
       acquiredAt: Date.now(),
       pullCount: state.totalPulls,
       fromBanner: 'standard',
@@ -405,12 +414,6 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       currentBannerId: bannerId,
-      // Task said: Resets spark points when switching banners?
-      // Requirement: "Spark Points are per-banner — they reset when banner changes"
-      // But state has Record<string, number>. Usually resetting means clearing the points for the NEW banner?
-      // Or clearing points for ALL banners? "resets when banner changes" usually means
-      // the points you earned on Banner A don't apply to Banner B.
-      // If they reset entirely, then:
       sparkPoints: {}
     }));
   }, []);
@@ -439,7 +442,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         state,
         loading,
         isSaving,
-        pullCard: pullCardComplete,
+        pullCard,
         claimFreePull,
         claimDailyBonus,
         convertDuplicates,

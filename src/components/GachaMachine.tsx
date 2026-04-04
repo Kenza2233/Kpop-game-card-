@@ -3,35 +3,37 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Coins, Info, Clock, ChevronDown, ChevronUp, History, X } from 'lucide-react';
-import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST } from '../lib/types';
+import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST, DUPLICATE_REWARDS, Grade } from '../lib/types';
 import { KpopCardComponent } from './KpopCard';
-import { formatNumber } from '../lib/cardUtils';
+import { useCardCollection } from '@/hooks/useCardCollection';
 
 interface GachaMachineProps {
   banner: Banner;
   onPull: (count: number) => GachaPullResult[];
+  onFreePull: () => GachaPullResult | null;
   currency: number;
   pityCounters: { ur: number; ssr: number };
   sparkPoints: number;
   canFreePull: boolean;
   freePullTimer: string;
-  pullHistory: GachaPullResult[];
+  pullHistory: any[];
 }
 
 export function GachaMachine({
   banner,
   onPull,
+  onFreePull,
   currency,
   pityCounters,
   sparkPoints,
   canFreePull,
   freePullTimer,
-  pullHistory
 }: GachaMachineProps) {
   const [isPulling, setIsPulling] = useState(false);
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
   const [revealedIndex, setRevealedIndex] = useState(-1);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const { cards: allCards } = useCardCollection();
 
   const handlePull = async (count: number) => {
     if (isPulling) return;
@@ -40,7 +42,6 @@ export function GachaMachine({
     setResults(null);
     setRevealedIndex(-1);
 
-    // Initial sequence: machine rumble
     await new Promise(r => setTimeout(r, 1000));
 
     const newResults = onPull(count);
@@ -51,11 +52,29 @@ export function GachaMachine({
 
     setResults(newResults);
 
-    // Reveal sequence
     for (let i = 0; i < newResults.length; i++) {
         setRevealedIndex(i);
-        await new Promise(r => setTimeout(r, 800)); // Reveal interval
+        await new Promise(r => setTimeout(r, 800));
     }
+  };
+
+  const handleFreePull = async () => {
+    if (isPulling || !canFreePull) return;
+
+    setIsPulling(true);
+    setResults(null);
+    setRevealedIndex(-1);
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    const res = onFreePull();
+    if (!res) {
+      setIsPulling(false);
+      return;
+    }
+
+    setResults([res]);
+    setRevealedIndex(0);
   };
 
   const currentRevealed = useMemo(() => {
@@ -68,6 +87,11 @@ export function GachaMachine({
     setResults(null);
     setRevealedIndex(-1);
   };
+
+  const rateUpCardsData = useMemo(() => {
+    if (!banner.rateUpCards) return [];
+    return banner.rateUpCards.map(id => allCards.find(c => c.id === id)).filter(Boolean);
+  }, [banner.rateUpCards, allCards]);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-8 px-4 grid grid-cols-1 lg:grid-cols-10 gap-8 relative">
@@ -103,14 +127,19 @@ export function GachaMachine({
           </div>
         </motion.div>
 
-        {banner.rateUpCards && (
+        {rateUpCardsData.length > 0 && (
           <div className="bg-white/5 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
              <h3 className="text-xs font-black text-white/40 uppercase tracking-widest mb-4">
                 Rate-Up Cards
              </h3>
              <div className="grid grid-cols-4 gap-3">
-                {banner.rateUpCards.slice(0, 4).map(id => (
-                   <div key={id} className="aspect-[3/4] bg-white/5 rounded-xl border border-white/10 animate-pulse" />
+                {rateUpCardsData.slice(0, 4).map(card => (
+                   <div key={card?.id} className="aspect-[3/4] rounded-xl overflow-hidden border border-white/10 group relative">
+                      <img src={card?.image} alt={card?.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                         <span className="text-[8px] font-black text-white truncate">{card?.name}</span>
+                      </div>
+                   </div>
                 ))}
              </div>
           </div>
@@ -120,7 +149,6 @@ export function GachaMachine({
       {/* Center Panel: Pull Area (30%) */}
       <div className="lg:col-span-3 flex flex-col items-center justify-center gap-8 py-12">
          <div className="relative w-full max-w-[280px] aspect-[3/4] flex items-center justify-center">
-            {/* Visual machine representation or idle glow */}
             <div className="absolute inset-0 bg-primary/5 rounded-3xl blur-[100px] animate-pulse" />
             <motion.div
                animate={isPulling ? {
@@ -144,7 +172,8 @@ export function GachaMachine({
                <button
                  onClick={() => handlePull(1)}
                  disabled={isPulling || currency < PULL_COSTS.SINGLE}
-                 className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all group"
+                 aria-label={`Single pull for ${PULL_COSTS.SINGLE} coins`}
+                 className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all group focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-white/60">Single Pull</span>
                   <div className="flex items-center gap-1">
@@ -155,7 +184,8 @@ export function GachaMachine({
                <button
                  onClick={() => handlePull(10)}
                  disabled={isPulling || currency < PULL_COSTS.TEN}
-                 className="flex-[2] kpop-gradient rounded-2xl py-4 flex flex-col items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                 aria-label={`Ten pull for ${PULL_COSTS.TEN} coins`}
+                 className="flex-[2] bg-gradient-to-br from-primary to-accent rounded-2xl py-4 flex flex-col items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
                   <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Ten Pull</span>
                   <div className="flex items-center gap-1">
@@ -166,7 +196,7 @@ export function GachaMachine({
             </div>
 
             <button
-               onClick={() => handlePull(1)}
+               onClick={handleFreePull}
                disabled={!canFreePull || isPulling}
                className={`w-full border-2 rounded-2xl py-3 text-xs font-black uppercase tracking-widest transition-all ${
                  canFreePull && !isPulling
@@ -181,7 +211,6 @@ export function GachaMachine({
 
       {/* Right Panel: Stats & Info (30%) */}
       <div className="lg:col-span-3 flex flex-col gap-6">
-         {/* Desktop Stats */}
          <div className="hidden lg:flex flex-col gap-6">
             <StatCard
               label="UR Pity"
@@ -203,21 +232,8 @@ export function GachaMachine({
               max={SPARK_COST}
               color="#A855F7"
             />
-
-            <div className="bg-white/5 border border-white/5 rounded-3xl p-6">
-               <h3 className="text-xs font-black text-white/40 uppercase tracking-widest flex items-center gap-2 mb-4">
-                  <History className="w-3 h-3" />
-                  Recent History
-               </h3>
-               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                  {pullHistory.slice(0, 5).map((res, i) => (
-                     <div key={i} className="min-w-[48px] aspect-[3/4] bg-white/5 rounded-lg border border-white/10" />
-                  ))}
-               </div>
-            </div>
          </div>
 
-         {/* Mobile Stats Toggle */}
          <button
            onClick={() => setShowMobileStats(!showMobileStats)}
            className="lg:hidden w-full bg-white/5 p-4 rounded-2xl flex items-center justify-between"
@@ -233,7 +249,6 @@ export function GachaMachine({
          )}
       </div>
 
-      {/* Pull Animation Sequence Overlay */}
       <AnimatePresence>
         {results && results.length > 0 && (
           <motion.div
@@ -242,7 +257,6 @@ export function GachaMachine({
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl p-6"
           >
-             {/* Progress indicator for 10-pulls */}
              {results.length > 1 && (
                <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-2">
                   {results.map((_, i) => (
@@ -261,7 +275,7 @@ export function GachaMachine({
                 <X className="w-6 h-6" />
              </button>
 
-             <div className="relative w-full max-w-md aspect-[3/4] perspective-1000 flex items-center justify-center">
+             <div className="relative w-full max-w-md aspect-[3/4] flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   {currentRevealed && (
                     <motion.div
@@ -289,7 +303,7 @@ export function GachaMachine({
                           {currentRevealed.isDuplicate && (
                              <p className="text-accent text-sm font-bold uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
                                 <Coins className="w-4 h-4" />
-                                Converted: +{currentRevealed.coinReward} Coins
+                                Converted: +{DUPLICATE_REWARDS[currentRevealed.card.grade as Grade || 'R']} Coins
                              </p>
                           )}
                        </div>
@@ -297,7 +311,6 @@ export function GachaMachine({
                   )}
                 </AnimatePresence>
 
-                {/* Grade-specific flash effects */}
                 {currentRevealed && (currentRevealed.card.grade === 'UR' || currentRevealed.card.grade === 'SSR') && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -313,7 +326,7 @@ export function GachaMachine({
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
                  onClick={closeResults}
-                 className="mt-12 px-16 py-5 kpop-gradient rounded-full font-black text-2xl text-white shadow-2xl hover:scale-105 transition-transform"
+                 className="mt-12 px-16 py-5 bg-gradient-to-br from-primary to-accent rounded-full font-black text-2xl text-white shadow-2xl hover:scale-105 transition-transform"
                >
                  CONFIRM
                </motion.button>
@@ -326,7 +339,7 @@ export function GachaMachine({
 }
 
 function StatCard({ label, current, max, color, approach }: { label: string; current: number; max: number; color: string; approach?: number }) {
-  const percentage = (current / max) * 100;
+  const percentage = Math.min((current / max) * 100, 100);
   const isApproaching = approach && current >= approach;
 
   return (

@@ -12,7 +12,7 @@ interface HeaderProps {
   sparkPoints: number;
 }
 
-export function Header({ currency, totalCards, sparkPoints }: HeaderProps) {
+export function Header({ currency, sparkPoints }: HeaderProps) {
   const pathname = usePathname();
 
   const navLinks = [

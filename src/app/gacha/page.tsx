@@ -2,19 +2,15 @@
 
 import { useCollection } from '@/context/CollectionContext';
 import { useBanner } from '@/hooks/useBanner';
-import { useCardCollection } from '@/hooks/useCardCollection';
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
 import { GachaMachine } from '@/components/GachaMachine';
 import { getTimeUntilReset } from '@/lib/cardUtils';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 
 export default function GachaPage() {
-  const { state, pullCard } = useCollection();
+  const { state, pullCard, claimFreePull } = useCollection();
   const { banners, currentBanner, setActiveBannerId } = useBanner();
-  const { cards } = useCardCollection();
   const [timer, setTimer] = useState('');
 
   useEffect(() => {
@@ -55,19 +51,14 @@ export default function GachaPage() {
          {currentBanner && (
            <GachaMachine
               banner={currentBanner}
-              onPull={(count) => pullCard(currentBanner.type, count)}
+              onPull={(count) => pullCard(currentBanner, count)}
+              onFreePull={() => claimFreePull(currentBanner)}
               currency={state.currency}
               pityCounters={{ ur: state.urPityCounter, ssr: state.ssrPityCounter }}
               sparkPoints={state.sparkPoints[currentBanner.id] || 0}
               canFreePull={canFreePull}
-            freePullTimer={timer}
-              pullHistory={state.pullHistory.map(p => ({
-                 card: p.card,
-                 isRateUp: false,
-                 isNewCard: false,
-                 pityTriggered: false,
-                 isDuplicate: false
-              }))}
+              freePullTimer={timer}
+              pullHistory={[]}
            />
          )}
       </div>

@@ -6,9 +6,9 @@ import { MobileNav } from '@/components/MobileNav';
 import { PullHistory } from '@/components/PullHistory';
 import { CardModal } from '@/components/CardModal';
 import { useState, useMemo } from 'react';
-import { OwnedCard, Grade } from '@/lib/types';
+import { OwnedCard } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart3, AlertCircle } from 'lucide-react';
 
 export default function HistoryPage() {
   const { state } = useCollection();

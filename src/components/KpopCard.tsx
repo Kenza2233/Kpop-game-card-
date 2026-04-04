@@ -22,14 +22,14 @@ const SIZES = {
   xl: 'w-72 md:w-80 h-[480px] md:h-[560px]',
 };
 
-export function KpopCardComponent({
+export const KpopCardComponent = React.memo(({
   card,
   size = 'md',
   onClick,
   showGrade = true,
   isHolographic = false,
   isNew = false
-}: KpopCardProps) {
+}: KpopCardProps) => {
   const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
@@ -158,4 +158,6 @@ export function KpopCardComponent({
       )}
     </motion.div>
   );
-}
+});
+
+KpopCardComponent.displayName = 'KpopCardComponent';
