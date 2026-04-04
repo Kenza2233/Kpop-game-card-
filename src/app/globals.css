@@ -45,3 +45,23 @@ body {
   transform: rotate(30deg);
   pointer-events: none;
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-200%) rotate(30deg); }
+  100% { transform: translateX(200%) rotate(30deg); }
+}
+
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+
+.animate-holographic {
+  background-size: 200% 200%;
+  animation: holographic 4s ease infinite;
+}
