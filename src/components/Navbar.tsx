@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Coins, LayoutGrid, Heart } from 'lucide-react';
-import { useGame } from '../context/GameContext';
+import { Coins, LayoutGrid, Heart, Save } from 'lucide-react';
+import { useCollection } from '../context/CollectionContext';
 
 export function Navbar() {
   const pathname = usePathname();
-  const { state } = useGame();
+  const { state, isSaving } = useCollection();
 
   const links = [
     { href: '/', icon: Heart, label: 'Gacha' },
@@ -45,11 +45,19 @@ export function Navbar() {
             })}
           </div>
 
-          <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 px-5 py-2 rounded-full text-accent font-black shadow-xl">
-            <Coins className="w-5 h-5 fill-accent" />
-            <span className="text-sm md:text-base tabular-nums tracking-tighter">
-              {state.currency.toLocaleString()}
-            </span>
+          <div className="flex items-center gap-4">
+            {isSaving && (
+              <div className="flex items-center gap-1 text-[10px] text-white/20 uppercase font-black tracking-widest animate-pulse">
+                <Save className="w-3 h-3" />
+                <span>Saving</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 px-5 py-2 rounded-full text-accent font-black shadow-xl">
+              <Coins className="w-5 h-5 fill-accent" />
+              <span className="text-sm md:text-base tabular-nums tracking-tighter">
+                {state.currency.toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
       </div>

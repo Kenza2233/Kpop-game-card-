@@ -2,34 +2,76 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Coins, X, Info } from 'lucide-react';
-import { useGacha } from '../hooks/useGacha';
 import { Card } from './Card';
-import { useGame } from '../context/GameContext';
-import { useState } from 'react';
-import { HARD_PITY, PULL_COSTS } from '../lib/types';
+import { useCollection } from '../context/CollectionContext';
+import { useState, useCallback } from 'react';
+import { HARD_PITY, PULL_COSTS, BASE_RATES, SOFT_PITY, BannerType, GachaPullResult } from '../lib/types';
 
 export function GachaMachine() {
-  const { state, claimDailyBonus } = useGame();
-  const { pullSingle, pullTen, isPulling, lastResults, setLastResults, getPullRates } = useGacha();
+  const { state, claimDailyBonus, pullCard, claimFreePull } = useCollection();
+  const [isPulling, setIsPulling] = useState(false);
+  const [lastResults, setLastResults] = useState<GachaPullResult[] | null>(null);
   const [showRates, setShowRates] = useState(false);
 
   const bannerId = state.currentBannerId;
   const bannerType = 'standard'; // Hardcoded for now
 
-  const rates = getPullRates(bannerType, state.urPityCounter, state.ssrPityCounter);
+  const getRates = () => {
+    let rates = { ...BASE_RATES };
+    if (state.urPityCounter >= SOFT_PITY.UR.start) {
+      rates.UR += (state.urPityCounter - SOFT_PITY.UR.start + 1) * SOFT_PITY.UR.increase;
+    }
+    if (state.ssrPityCounter >= SOFT_PITY.SSR.start) {
+      rates.SSR += (state.ssrPityCounter - SOFT_PITY.SSR.start + 1) * SOFT_PITY.SSR.increase;
+    }
+    return rates;
+  };
+
+  const rates = getRates();
+
+  const handlePullSingle = async () => {
+    setIsPulling(true);
+    await new Promise(r => setTimeout(r, 1500));
+    const res = pullCard('standard', 1);
+    setLastResults(res);
+    setIsPulling(false);
+  };
+
+  const handlePullTen = async () => {
+    setIsPulling(true);
+    await new Promise(r => setTimeout(r, 3000));
+    const res = pullCard('standard', 10);
+    setLastResults(res);
+    setIsPulling(false);
+  };
+
+  const handleFreePull = async () => {
+    setIsPulling(true);
+    await new Promise(r => setTimeout(r, 1500));
+    const res = claimFreePull();
+    if (res) setLastResults([res]);
+    setIsPulling(false);
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 px-4 relative overflow-hidden">
-      {/* Daily Login Button */}
-      <div className="absolute top-4 left-4 z-20">
+      {/* Daily Login & Free Pull Buttons */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
          <button
            onClick={() => {
              const res = claimDailyBonus();
              alert(res.message);
            }}
-           className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-sm border border-white/5 transition-all"
+           className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-4 py-2 rounded-full backdrop-blur-sm border border-white/5 transition-all uppercase tracking-widest"
          >
            {state.lastDailyBonus ? "STREAK: " + state.dailyStreak : "CLAIM DAILY BONUS"}
+         </button>
+         <button
+           onClick={handleFreePull}
+           disabled={isPulling}
+           className="bg-accent/20 hover:bg-accent/30 text-accent text-[10px] font-bold px-4 py-2 rounded-full backdrop-blur-sm border border-accent/20 transition-all uppercase tracking-widest"
+         >
+           FREE DAILY PULL
          </button>
       </div>
 
@@ -85,7 +127,7 @@ export function GachaMachine() {
 
       <div className="flex flex-col sm:flex-row gap-4 mt-12 w-full max-w-md">
         <button
-          onClick={() => pullSingle(bannerId, bannerType)}
+          onClick={handlePullSingle}
           disabled={isPulling || state.currency < PULL_COSTS.SINGLE}
           className={`flex-1 px-8 py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-xl ${
             isPulling || state.currency < PULL_COSTS.SINGLE
@@ -98,7 +140,7 @@ export function GachaMachine() {
         </button>
 
         <button
-          onClick={() => pullTen(bannerId, bannerType)}
+          onClick={handlePullTen}
           disabled={isPulling || state.currency < PULL_COSTS.TEN}
           className={`flex-[2] px-8 py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-2xl ${
             isPulling || state.currency < PULL_COSTS.TEN

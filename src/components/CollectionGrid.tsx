@@ -1,13 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useGame } from '../context/GameContext';
+import { useCollection } from '../context/CollectionContext';
 import { Card } from './Card';
 import { useState } from 'react';
 import { GradeFilter } from '../lib/types';
+import { Trash2, Download, Upload } from 'lucide-react';
 
 export function CollectionGrid() {
-  const { state } = useGame();
+  const { state, convertDuplicates, exportCollection, importCollection } = useCollection();
   const [filter, setFilter] = useState<GradeFilter>('all');
 
   const filteredCollection = filter === 'all'
@@ -24,6 +25,34 @@ export function CollectionGrid() {
         </h2>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const res = convertDuplicates();
+              alert(`Removed ${res.cardsRemoved} duplicates and gained ${res.coinsGained} coins!`);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all uppercase"
+            title="Convert Duplicates"
+          >
+            <Trash2 className="w-3 h-3" />
+            Convert
+          </button>
+
+          <button
+            onClick={() => {
+               const data = exportCollection();
+               const blob = new Blob([data], { type: 'application/json' });
+               const url = URL.createObjectURL(blob);
+               const a = document.createElement('a');
+               a.href = url;
+               a.download = `kpop_collection_${new Date().toISOString().split('T')[0]}.json`;
+               a.click();
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest bg-white/5 border border-white/10 text-white/40 hover:text-white transition-all uppercase"
+          >
+            <Download className="w-3 h-3" />
+            Export
+          </button>
+
           {grades.map((g) => (
             <button
               key={g}

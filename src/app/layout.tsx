@@ -1,4 +1,4 @@
-import { GameProvider } from '@/context/GameContext';
+import { CollectionProvider } from '@/context/CollectionContext';
 import { Navbar } from '@/components/Navbar';
 import './globals.css';
 
@@ -15,12 +15,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased pb-24 md:pb-0 md:pt-20">
-        <GameProvider>
+        <CollectionProvider>
           <Navbar />
           <main className="min-h-screen">
             {children}
           </main>
-        </GameProvider>
+        </CollectionProvider>
       </body>
     </html>
   );
