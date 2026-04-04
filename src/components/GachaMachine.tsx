@@ -1,211 +1,356 @@
 'use client';
 
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Coins, X, Info } from 'lucide-react';
-import { Card } from './Card';
-import { useCollection } from '../context/CollectionContext';
-import { useState, useCallback } from 'react';
-import { HARD_PITY, PULL_COSTS, BASE_RATES, SOFT_PITY, BannerType, GachaPullResult } from '../lib/types';
+import { Sparkles, Coins, Info, Clock, ChevronDown, ChevronUp, History, X } from 'lucide-react';
+import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST } from '../lib/types';
+import { KpopCardComponent } from './KpopCard';
+import { formatNumber } from '../lib/cardUtils';
 
-export function GachaMachine() {
-  const { state, claimDailyBonus, pullCard, claimFreePull } = useCollection();
+interface GachaMachineProps {
+  banner: Banner;
+  onPull: (count: number) => GachaPullResult[];
+  currency: number;
+  pityCounters: { ur: number; ssr: number };
+  sparkPoints: number;
+  canFreePull: boolean;
+  freePullTimer: string;
+  pullHistory: GachaPullResult[];
+}
+
+export function GachaMachine({
+  banner,
+  onPull,
+  currency,
+  pityCounters,
+  sparkPoints,
+  canFreePull,
+  freePullTimer,
+  pullHistory
+}: GachaMachineProps) {
   const [isPulling, setIsPulling] = useState(false);
-  const [lastResults, setLastResults] = useState<GachaPullResult[] | null>(null);
-  const [showRates, setShowRates] = useState(false);
+  const [results, setResults] = useState<GachaPullResult[] | null>(null);
+  const [revealedIndex, setRevealedIndex] = useState(-1);
+  const [showMobileStats, setShowMobileStats] = useState(false);
 
-  const bannerId = state.currentBannerId;
-  const bannerType = 'standard'; // Hardcoded for now
+  const handlePull = async (count: number) => {
+    if (isPulling) return;
 
-  const getRates = () => {
-    let rates = { ...BASE_RATES };
-    if (state.urPityCounter >= SOFT_PITY.UR.start) {
-      rates.UR += (state.urPityCounter - SOFT_PITY.UR.start + 1) * SOFT_PITY.UR.increase;
+    setIsPulling(true);
+    setResults(null);
+    setRevealedIndex(-1);
+
+    // Initial sequence: machine rumble
+    await new Promise(r => setTimeout(r, 1000));
+
+    const newResults = onPull(count);
+    if (newResults.length === 0) {
+      setIsPulling(false);
+      return;
     }
-    if (state.ssrPityCounter >= SOFT_PITY.SSR.start) {
-      rates.SSR += (state.ssrPityCounter - SOFT_PITY.SSR.start + 1) * SOFT_PITY.SSR.increase;
+
+    setResults(newResults);
+
+    // Reveal sequence
+    for (let i = 0; i < newResults.length; i++) {
+        setRevealedIndex(i);
+        await new Promise(r => setTimeout(r, 800)); // Reveal interval
     }
-    return rates;
   };
 
-  const rates = getRates();
+  const currentRevealed = useMemo(() => {
+    if (!results || revealedIndex === -1) return null;
+    return results[revealedIndex];
+  }, [results, revealedIndex]);
 
-  const handlePullSingle = async () => {
-    setIsPulling(true);
-    await new Promise(r => setTimeout(r, 1500));
-    const res = pullCard('standard', 1);
-    setLastResults(res);
+  const closeResults = () => {
     setIsPulling(false);
-  };
-
-  const handlePullTen = async () => {
-    setIsPulling(true);
-    await new Promise(r => setTimeout(r, 3000));
-    const res = pullCard('standard', 10);
-    setLastResults(res);
-    setIsPulling(false);
-  };
-
-  const handleFreePull = async () => {
-    setIsPulling(true);
-    await new Promise(r => setTimeout(r, 1500));
-    const res = claimFreePull();
-    if (res) setLastResults([res]);
-    setIsPulling(false);
+    setResults(null);
+    setRevealedIndex(-1);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 px-4 relative overflow-hidden">
-      {/* Daily Login & Free Pull Buttons */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-         <button
-           onClick={() => {
-             const res = claimDailyBonus();
-             alert(res.message);
-           }}
-           className="bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold px-4 py-2 rounded-full backdrop-blur-sm border border-white/5 transition-all uppercase tracking-widest"
-         >
-           {state.lastDailyBonus ? "STREAK: " + state.dailyStreak : "CLAIM DAILY BONUS"}
-         </button>
-         <button
-           onClick={handleFreePull}
-           disabled={isPulling}
-           className="bg-accent/20 hover:bg-accent/30 text-accent text-[10px] font-bold px-4 py-2 rounded-full backdrop-blur-sm border border-accent/20 transition-all uppercase tracking-widest"
-         >
-           FREE DAILY PULL
-         </button>
-      </div>
+    <div className="w-full max-w-7xl mx-auto py-8 px-4 grid grid-cols-1 lg:grid-cols-10 gap-8 relative">
 
-      <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-6xl font-black mb-4 kpop-gradient bg-clip-text text-transparent italic tracking-tighter">
-          KPOP GACHA
-        </h1>
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-white/40 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-            PITY: UR {state.urPityCounter}/{HARD_PITY.UR} • SSR {state.ssrPityCounter}/{HARD_PITY.SSR}
-            <button onClick={() => setShowRates(!showRates)} className="text-accent hover:text-white transition-colors">
-              <Info className="w-4 h-4" />
-            </button>
-          </p>
-
-          <AnimatePresence>
-            {showRates && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="bg-black/40 p-3 rounded-xl border border-white/5 backdrop-blur-md text-[10px] text-white/60 font-mono grid grid-cols-2 gap-x-4 gap-y-1"
-              >
-                <span>UR RATE: {rates.UR.toFixed(2)}%</span>
-                <span>SSR RATE: {rates.SSR.toFixed(2)}%</span>
-                <span>SR RATE: {rates.SR.toFixed(2)}%</span>
-                <span>R RATE: {rates.R.toFixed(2)}%</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <div className="relative group w-full max-w-xs aspect-square flex items-center justify-center">
+      {/* Left Panel: Banner Info (40%) */}
+      <div className="lg:col-span-4 flex flex-col gap-6">
         <motion.div
-          animate={isPulling ? {
-            rotate: [0, -10, 10, -10, 10, 0],
-            scale: [1, 1.15, 1, 1.15, 1],
-          } : {}}
-          transition={{ duration: 0.4, repeat: isPulling ? Infinity : 0 }}
-          className="w-full h-full rounded-full border-8 border-primary/20 flex items-center justify-center relative bg-card-bg/30 backdrop-blur-sm group-hover:border-primary/40 transition-all shadow-[0_0_50px_rgba(236,72,153,0.1)]"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="relative aspect-[16/9] rounded-3xl overflow-hidden group shadow-2xl border border-white/5"
         >
-          {isPulling ? (
-            <Sparkles className="w-32 h-32 text-primary animate-pulse" />
-          ) : (
-            <div className="text-8xl text-white font-black drop-shadow-2xl opacity-20">?</div>
-          )}
+          <img
+            src={banner.image}
+            alt={banner.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+             <div className="flex items-center gap-2 mb-2">
+                <span className="bg-primary px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20">
+                   {banner.type}
+                </span>
+                <div className="flex items-center gap-1 text-[10px] text-white/60 font-bold bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full">
+                   <Clock className="w-3 h-3" />
+                   Ends in: {banner.endDate}
+                </div>
+             </div>
+             <h2 className="text-3xl font-black italic tracking-tighter text-white leading-none mb-2">
+                {banner.name}
+             </h2>
+             <p className="text-white/60 text-xs font-medium max-w-sm">
+                {banner.description}
+             </p>
+          </div>
         </motion.div>
 
-        <div className="absolute top-0 right-0 w-16 h-16 bg-accent/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-secondary/20 rounded-full blur-3xl" />
+        {banner.rateUpCards && (
+          <div className="bg-white/5 border border-white/5 rounded-3xl p-6 backdrop-blur-xl">
+             <h3 className="text-xs font-black text-white/40 uppercase tracking-widest mb-4">
+                Rate-Up Cards
+             </h3>
+             <div className="grid grid-cols-4 gap-3">
+                {banner.rateUpCards.slice(0, 4).map(id => (
+                   <div key={id} className="aspect-[3/4] bg-white/5 rounded-xl border border-white/10 animate-pulse" />
+                ))}
+             </div>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mt-12 w-full max-w-md">
-        <button
-          onClick={handlePullSingle}
-          disabled={isPulling || state.currency < PULL_COSTS.SINGLE}
-          className={`flex-1 px-8 py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-xl ${
-            isPulling || state.currency < PULL_COSTS.SINGLE
-              ? 'bg-white/5 text-white/20 cursor-not-allowed'
-              : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
-          }`}
-        >
-          <Coins className="w-6 h-6" />
-          {PULL_COSTS.SINGLE}
-        </button>
+      {/* Center Panel: Pull Area (30%) */}
+      <div className="lg:col-span-3 flex flex-col items-center justify-center gap-8 py-12">
+         <div className="relative w-full max-w-[280px] aspect-[3/4] flex items-center justify-center">
+            {/* Visual machine representation or idle glow */}
+            <div className="absolute inset-0 bg-primary/5 rounded-3xl blur-[100px] animate-pulse" />
+            <motion.div
+               animate={isPulling ? {
+                 rotate: [0, -5, 5, -5, 5, 0],
+                 scale: [1, 1.05, 1, 1.05, 1],
+               } : {}}
+               transition={{ duration: 0.3, repeat: Infinity, repeatType: 'reverse' }}
+               className="relative z-10 w-full h-full border-8 border-white/5 rounded-3xl bg-card-bg/40 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center"
+            >
+               <Sparkles className={`w-24 h-24 transition-colors duration-1000 ${isPulling ? 'text-primary' : 'text-white/10'}`} />
+               <div className="mt-8">
+                  <span className="text-white/20 text-xs font-black tracking-widest uppercase">
+                     Gacha Machine
+                  </span>
+               </div>
+            </motion.div>
+         </div>
 
-        <button
-          onClick={handlePullTen}
-          disabled={isPulling || state.currency < PULL_COSTS.TEN}
-          className={`flex-[2] px-8 py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-2xl ${
-            isPulling || state.currency < PULL_COSTS.TEN
-              ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-              : 'kpop-gradient text-white hover:scale-[1.02] hover:shadow-primary/50'
-          }`}
-        >
-          <Sparkles className="w-6 h-6" />
-          TEN PULL ({PULL_COSTS.TEN})
-        </button>
+         <div className="w-full flex flex-col gap-3">
+            <div className="flex gap-2">
+               <button
+                 onClick={() => handlePull(1)}
+                 disabled={isPulling || currency < PULL_COSTS.SINGLE}
+                 className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all group"
+               >
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-white/60">Single Pull</span>
+                  <div className="flex items-center gap-1">
+                     <Coins className="w-4 h-4 text-accent fill-accent/20" />
+                     <span className="text-lg font-black text-white">{PULL_COSTS.SINGLE}</span>
+                  </div>
+               </button>
+               <button
+                 onClick={() => handlePull(10)}
+                 disabled={isPulling || currency < PULL_COSTS.TEN}
+                 className="flex-[2] kpop-gradient rounded-2xl py-4 flex flex-col items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+               >
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Ten Pull</span>
+                  <div className="flex items-center gap-1">
+                     <Coins className="w-4 h-4 text-white fill-white/20" />
+                     <span className="text-lg font-black text-white">{PULL_COSTS.TEN}</span>
+                  </div>
+               </button>
+            </div>
+
+            <button
+               onClick={() => handlePull(1)}
+               disabled={!canFreePull || isPulling}
+               className={`w-full border-2 rounded-2xl py-3 text-xs font-black uppercase tracking-widest transition-all ${
+                 canFreePull && !isPulling
+                   ? 'border-accent text-accent hover:bg-accent/10'
+                   : 'border-white/5 text-white/20 cursor-not-allowed'
+               }`}
+            >
+               {canFreePull ? 'CLAIM FREE DAILY PULL' : `NEXT FREE PULL: ${freePullTimer}`}
+            </button>
+         </div>
       </div>
 
+      {/* Right Panel: Stats & Info (30%) */}
+      <div className="lg:col-span-3 flex flex-col gap-6">
+         {/* Desktop Stats */}
+         <div className="hidden lg:flex flex-col gap-6">
+            <StatCard
+              label="UR Pity"
+              current={pityCounters.ur}
+              max={HARD_PITY.UR}
+              color="#FFD700"
+              approach={SOFT_PITY.UR.start}
+            />
+            <StatCard
+              label="SSR Pity"
+              current={pityCounters.ssr}
+              max={HARD_PITY.SSR}
+              color="#C084FC"
+              approach={SOFT_PITY.SSR.start}
+            />
+            <StatCard
+              label="Spark Points"
+              current={sparkPoints}
+              max={SPARK_COST}
+              color="#A855F7"
+            />
+
+            <div className="bg-white/5 border border-white/5 rounded-3xl p-6">
+               <h3 className="text-xs font-black text-white/40 uppercase tracking-widest flex items-center gap-2 mb-4">
+                  <History className="w-3 h-3" />
+                  Recent History
+               </h3>
+               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                  {pullHistory.slice(0, 5).map((res, i) => (
+                     <div key={i} className="min-w-[48px] aspect-[3/4] bg-white/5 rounded-lg border border-white/10" />
+                  ))}
+               </div>
+            </div>
+         </div>
+
+         {/* Mobile Stats Toggle */}
+         <button
+           onClick={() => setShowMobileStats(!showMobileStats)}
+           className="lg:hidden w-full bg-white/5 p-4 rounded-2xl flex items-center justify-between"
+         >
+            <span className="text-xs font-black uppercase tracking-widest text-white/60">Banner Statistics</span>
+            {showMobileStats ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+         </button>
+         {showMobileStats && (
+            <div className="lg:hidden flex flex-col gap-4 p-2">
+               <StatCard label="UR Pity" current={pityCounters.ur} max={HARD_PITY.UR} color="#FFD700" approach={SOFT_PITY.UR.start} />
+               <StatCard label="SSR Pity" current={pityCounters.ssr} max={HARD_PITY.SSR} color="#C084FC" approach={SOFT_PITY.SSR.start} />
+            </div>
+         )}
+      </div>
+
+      {/* Pull Animation Sequence Overlay */}
       <AnimatePresence>
-        {lastResults && lastResults.length > 0 && (
+        {results && results.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/98 backdrop-blur-2xl p-4 overflow-y-auto"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl p-6"
           >
-            <div className="max-w-6xl w-full py-12">
-              <div className="text-center mb-12">
-                <h2 className="text-5xl font-black text-white italic tracking-tighter mb-2">
-                  RESULTS
-                </h2>
-                <div className="h-1 w-24 bg-primary mx-auto rounded-full" />
-              </div>
+             {/* Progress indicator for 10-pulls */}
+             {results.length > 1 && (
+               <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-2">
+                  {results.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-10 h-1 rounded-full transition-all duration-500 ${i <= revealedIndex ? 'bg-primary' : 'bg-white/10'}`}
+                    />
+                  ))}
+               </div>
+             )}
 
-              <div className={`grid gap-6 ${lastResults.length === 1 ? 'max-w-sm mx-auto' : 'grid-cols-2 md:grid-cols-5'}`}>
-                {lastResults.map((res, i) => (
+             <button
+               onClick={closeResults}
+               className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all"
+             >
+                <X className="w-6 h-6" />
+             </button>
+
+             <div className="relative w-full max-w-md aspect-[3/4] perspective-1000 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  {currentRevealed && (
+                    <motion.div
+                      key={currentRevealed.card.instanceId}
+                      initial={{ rotateY: 180, scale: 0.8, opacity: 0 }}
+                      animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                      exit={{ rotateY: -180, scale: 0.8, opacity: 0 }}
+                      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+                      className="w-full h-full flex flex-col items-center gap-8"
+                    >
+                       <KpopCardComponent
+                         card={currentRevealed.card}
+                         size="xl"
+                         isNew={currentRevealed.isNewCard}
+                       />
+
+                       <div className="text-center">
+                          <motion.h2
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="text-4xl font-black italic tracking-tighter text-white uppercase"
+                          >
+                             {currentRevealed.isNewCard ? 'NEW UNLOCKED!' : 'OBTAINED!'}
+                          </motion.h2>
+                          {currentRevealed.isDuplicate && (
+                             <p className="text-accent text-sm font-bold uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
+                                <Coins className="w-4 h-4" />
+                                Converted: +{currentRevealed.coinReward} Coins
+                             </p>
+                          )}
+                       </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Grade-specific flash effects */}
+                {currentRevealed && (currentRevealed.card.grade === 'UR' || currentRevealed.card.grade === 'SSR') && (
                   <motion.div
-                    key={res.card.instanceId}
-                    initial={{ scale: 0.5, opacity: 0, y: 50 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, type: 'spring', damping: 15 }}
-                    className="relative"
-                  >
-                    <Card card={res.card} />
-                    {res.isDuplicate && (
-                      <div className="absolute -top-2 -right-2 bg-accent text-black text-[10px] font-black px-2 py-1 rounded-lg shadow-lg z-30">
-                        +{res.coinReward} COINS
-                      </div>
-                    )}
-                    {res.pityTriggered && (
-                        <div className="absolute -bottom-2 inset-x-0 text-center z-30">
-                           <span className="bg-white text-black text-[8px] font-black px-2 py-0.5 rounded-full">PITY</span>
-                        </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 0.4 }}
+                    className={`absolute inset-[-100%] z-[-1] blur-[100px] ${currentRevealed.card.grade === 'UR' ? 'bg-yellow-400/30' : 'bg-purple-400/30'}`}
+                  />
+                )}
+             </div>
 
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: lastResults.length * 0.1 + 0.5 }}
-                onClick={() => setLastResults(null)}
-                className="block mx-auto mt-16 px-16 py-5 kpop-gradient rounded-full font-black text-2xl text-white shadow-2xl hover:scale-105 transition-transform"
-              >
-                CONFIRM
-              </motion.button>
-            </div>
+             {revealedIndex === results.length - 1 && (
+               <motion.button
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 onClick={closeResults}
+                 className="mt-12 px-16 py-5 kpop-gradient rounded-full font-black text-2xl text-white shadow-2xl hover:scale-105 transition-transform"
+               >
+                 CONFIRM
+               </motion.button>
+             )}
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function StatCard({ label, current, max, color, approach }: { label: string; current: number; max: number; color: string; approach?: number }) {
+  const percentage = (current / max) * 100;
+  const isApproaching = approach && current >= approach;
+
+  return (
+    <div className="bg-white/5 border border-white/5 rounded-3xl p-5 shadow-xl">
+      <div className="flex items-center justify-between mb-3">
+         <div className="flex flex-col">
+            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{label}</span>
+            <span className="text-lg font-black text-white tabular-nums">{current} <span className="text-white/20 text-xs">/ {max}</span></span>
+         </div>
+         {isApproaching && (
+            <div className="flex items-center gap-1 bg-accent/20 px-2 py-0.5 rounded-full animate-pulse">
+               <Info className="w-3 h-3 text-accent" />
+               <span className="text-[8px] font-black text-accent uppercase tracking-tighter">Soft Pity</span>
+            </div>
+         )}
+      </div>
+      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+         <motion.div
+           initial={{ width: 0 }}
+           animate={{ width: `${percentage}%` }}
+           className="h-full rounded-full"
+           style={{ backgroundColor: color }}
+         />
+      </div>
     </div>
   );
 }
