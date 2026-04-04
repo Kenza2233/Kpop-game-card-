@@ -1,12 +1,16 @@
-export type Rarity = 'Common' | 'Rare' | 'Super Rare' | 'Ultra Rare';
+export type Grade = 'R' | 'SR' | 'SSR' | 'UR';
 
-export interface Card {
-  id: string;
+export interface RawCard {
   name: string;
   group: string;
-  rarity: Rarity;
-  imageUrl: string;
-  description?: string;
+  gender: string;
+  image: string;
+  debut: number;
+  album: string;
+}
+
+export interface Card extends RawCard {
+  grade: Grade;
 }
 
 export interface UserCard extends Card {
@@ -17,19 +21,18 @@ export interface UserCard extends Card {
 export interface UserStats {
   credits: number;
   collection: UserCard[];
-  lastDailyCollection?: number;
 }
 
-export const RARITY_WEIGHTS: Record<Rarity, number> = {
-  'Common': 70,
-  'Rare': 20,
-  'Super Rare': 8,
-  'Ultra Rare': 2,
+export const GRADE_WEIGHTS: Record<Grade, number> = {
+  'R': 70,
+  'SR': 20,
+  'SSR': 8,
+  'UR': 2,
 };
 
-export const RARITY_COLORS: Record<Rarity, string> = {
-  'Common': 'text-gray-400',
-  'Rare': 'text-blue-400',
-  'Super Rare': 'text-purple-400',
-  'Ultra Rare': 'text-yellow-400',
+export const GRADE_COLORS: Record<Grade, string> = {
+  'R': 'text-slate-400',
+  'SR': 'text-blue-400',
+  'SSR': 'text-purple-400',
+  'UR': 'text-yellow-400',
 };

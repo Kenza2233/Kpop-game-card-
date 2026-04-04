@@ -1,0 +1,18 @@
+
+> kpop-gacha@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 1676ms
+
+○ Compiling / ...
+ GET / 200 in 8.3s (next.js: 7.7s, application-code: 612ms)
+[browser] An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+[browser] Image is missing required "src" property: [object HTMLImageElement]
+[browser] Image is missing required "src" property: [object HTMLImageElement]
+ GET /collection 200 in 1298ms (next.js: 1256ms, application-code: 42ms)
+[browser] An empty string ("") was passed to the src attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to src instead of an empty string.
+[browser] Image is missing required "src" property: [object HTMLImageElement]
+[browser] Image is missing required "src" property: [object HTMLImageElement]

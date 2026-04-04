@@ -2,14 +2,14 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Card as CardType, RARITY_COLORS } from '../lib/types';
+import { Card as CardType, GRADE_COLORS } from '../lib/types';
 
 interface CardProps {
   card: CardType;
-  showRarity?: boolean;
+  showGrade?: boolean;
 }
 
-export function Card({ card, showRarity = true }: CardProps) {
+export function Card({ card, showGrade = true }: CardProps) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -20,7 +20,7 @@ export function Card({ card, showRarity = true }: CardProps) {
     >
       <div className="absolute inset-0 z-0">
         <Image
-          src={card.imageUrl}
+          src={card.image}
           alt={card.name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -31,16 +31,26 @@ export function Card({ card, showRarity = true }: CardProps) {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-80 transition-opacity" />
 
       <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-        {showRarity && (
-          <span className={`text-xs font-bold uppercase tracking-wider ${RARITY_COLORS[card.rarity]}`}>
-            {card.rarity}
-          </span>
-        )}
-        <h3 className="text-xl font-bold text-white truncate">{card.name}</h3>
-        <p className="text-sm text-white/70">{card.group}</p>
+        <div className="flex flex-col gap-1">
+          {showGrade && (
+            <div className="flex justify-between items-center">
+              <span className={`text-xs font-black uppercase tracking-widest ${GRADE_COLORS[card.grade]}`}>
+                {card.grade}
+              </span>
+              <span className="text-[10px] text-white/40 uppercase tracking-tighter">
+                {card.gender}
+              </span>
+            </div>
+          )}
+          <h3 className="text-xl font-bold text-white truncate leading-none">{card.name}</h3>
+          <p className="text-sm text-white/70 font-medium">{card.group.toLowerCase()}</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
+            {card.album} • {card.debut}
+          </p>
+        </div>
       </div>
 
-      {card.rarity === 'Ultra Rare' && (
+      {card.grade === 'UR' && (
         <div className="absolute inset-0 ring-4 ring-yellow-400/50 ring-inset pointer-events-none animate-pulse" />
       )}
     </motion.div>
