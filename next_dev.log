@@ -1,0 +1,21 @@
+
+> kpop-gacha@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 591ms
+
+○ Compiling / ...
+ GET / 200 in 8.1s (next.js: 7.4s, application-code: 690ms)
+ GET /collection 200 in 1133ms (next.js: 1054ms, application-code: 79ms)
+⚠ Found a change in next.config.mjs. Restarting the server to apply the changes...
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 423ms
+⨯ Failed to load next.config.mjs, see more info here https://nextjs.org/docs/messages/next-config-error
+SyntaxError: Unexpected token '{'
+    at ignore-listed frames
+[?25h
