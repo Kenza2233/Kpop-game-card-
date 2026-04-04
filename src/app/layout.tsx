@@ -1,6 +1,20 @@
 import { CollectionProvider } from '@/context/CollectionContext';
 import { Navbar } from '@/components/Navbar';
+import { Righteous, Inter } from 'next/font/google';
 import './globals.css';
+
+const righteous = Righteous({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-righteous',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'KPOP Gacha Game',
@@ -13,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="antialiased pb-24 md:pb-0 md:pt-20">
+    <html lang="en" className={`dark ${righteous.variable} ${inter.variable}`}>
+      <body className="antialiased font-body bg-kpop-dark text-white pb-24 md:pb-0 md:pt-20">
         <CollectionProvider>
           <Navbar />
           <main className="min-h-screen">

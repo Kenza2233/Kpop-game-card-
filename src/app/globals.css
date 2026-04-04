@@ -3,25 +3,63 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --primary: #ec4899;
-  --primary-foreground: #ffffff;
-  --secondary: #a855f7;
-  --accent: #f59e0b;
-  --card-bg: #1e293b;
+  --kpop-dark: #0a0a0f;
+  --kpop-darker: #050508;
+  --kpop-card-bg: #12121a;
+  --kpop-pink: #ff2d78;
+  --kpop-purple: #8b5cf6;
+  --kpop-gold: #ffd700;
+  --kpop-blue: #60a5fa;
+  --kpop-green: #34d399;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--kpop-dark);
+  color: #ffffff;
+  overflow-x: hidden;
 }
 
-.kpop-gradient {
-  background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+@keyframes sparkle {
+  0%, 100% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1); opacity: 1; }
 }
 
+@keyframes holo-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes pull-reveal {
+  0% { transform: perspective(1000px) rotateY(180deg); }
+  100% { transform: perspective(1000px) rotateY(0deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px currentColor; }
+  50% { box-shadow: 0 0 40px currentColor; }
+}
+
+@keyframes pity-warning {
+  0%, 100% { opacity: 0.5; color: #f97316; }
+  50% { opacity: 1; color: #ef4444; }
+}
+
+/* Custom class for card shine effect using shimmer animation */
 .card-shine {
   position: relative;
   overflow: hidden;
@@ -30,38 +68,42 @@ body {
 .card-shine::after {
   content: "";
   position: absolute;
-  top: -150%;
-  left: -50%;
+  top: 0;
+  left: -200%;
   width: 200%;
-  height: 300%;
+  height: 100%;
   background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 40%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 60%,
-    rgba(255, 255, 255, 0) 100%
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
   );
-  transform: rotate(30deg);
-  pointer-events: none;
+  animation: shimmer 3s infinite;
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-200%) rotate(30deg); }
-  100% { transform: translateX(200%) rotate(30deg); }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-@keyframes holographic {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+::-webkit-scrollbar-track {
+  background: var(--kpop-darker);
 }
 
-.animate-shimmer {
-  animation: shimmer 2.5s infinite;
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 10px;
 }
 
-.animate-holographic {
-  background-size: 200% 200%;
-  animation: holographic 4s ease infinite;
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
