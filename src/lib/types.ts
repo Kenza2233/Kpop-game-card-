@@ -1,38 +1,83 @@
-export type Grade = 'R' | 'SR' | 'SSR' | 'UR';
+export type Grade = 'UR' | 'SSR' | 'SR' | 'R';
+export type Category = 'Girl Group' | 'Boy Group' | 'Female Solo' | 'Male Solo';
+export type BannerType = 'standard' | 'featured' | 'limited' | 'newcomer';
 
-export interface RawCard {
+export interface KpopCard {
+  id: string;
   name: string;
   group: string;
-  gender: string;
+  category: Category;
   image: string;
-  debut: number;
-  album: string;
+  era: string;
+  year: number;
+  grade?: Grade;
+  isNew?: boolean;
 }
 
-export interface Card extends RawCard {
-  grade: Grade;
+export interface OwnedCard extends KpopCard {
+  instanceId: string; // unique per pull instance
+  acquiredAt: number; // timestamp
+  pullCount: number; // which pull number
+  fromBanner?: BannerType;
 }
 
-export interface UserCard extends Card {
-  instanceId: string;
-  obtainedAt: number;
+export interface Banner {
+  id: string;
+  name: string;
+  type: BannerType;
+  description: string;
+  rateUpCards?: string[]; // card IDs with boosted rates
+  startDate: string;
+  endDate: string;
+  image: string;
 }
 
-export interface UserStats {
-  credits: number;
-  collection: UserCard[];
+export interface GachaPullResult {
+  card: OwnedCard;
+  isRateUp: boolean;
+  isNewCard: boolean;
+  pityTriggered: boolean;
 }
 
+export interface PullHistoryEntry {
+  pullNumber: number;
+  card: OwnedCard;
+  banner: BannerType;
+  timestamp: number;
+  currencySpent: number;
+}
+
+export interface CollectionState {
+  ownedCards: OwnedCard[];
+  totalPulls: number;
+  currency: number;
+  urPityCounter: number;
+  ssrPityCounter: number;
+  sparkPoints: number;
+  lastFreePull: number | null;
+  lastDailyBonus: number | null;
+  currentBanner: string;
+  pullHistory: PullHistoryEntry[];
+  achievements: string[];
+  dailyStreak: number;
+  lastStreakDate: number | null;
+}
+
+export type SortOption = 'name-asc' | 'name-desc' | 'grade-desc' | 'grade-asc' | 'newest' | 'group';
+export type GradeFilter = 'all' | Grade;
+export type CategoryFilter = 'all' | Category;
+
+// Configuration for Gacha Rates
 export const GRADE_WEIGHTS: Record<Grade, number> = {
-  'R': 70,
-  'SR': 20,
-  'SSR': 8,
   'UR': 2,
+  'SSR': 8,
+  'SR': 20,
+  'R': 70,
 };
 
 export const GRADE_COLORS: Record<Grade, string> = {
-  'R': 'text-slate-400',
-  'SR': 'text-blue-400',
-  'SSR': 'text-purple-400',
   'UR': 'text-yellow-400',
+  'SSR': 'text-purple-400',
+  'SR': 'text-blue-400',
+  'R': 'text-slate-400',
 };

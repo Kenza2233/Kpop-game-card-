@@ -2,10 +2,10 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Card as CardType, GRADE_COLORS } from '../lib/types';
+import { KpopCard, GRADE_COLORS } from '../lib/types';
 
 interface CardProps {
-  card: CardType;
+  card: KpopCard;
   showGrade?: boolean;
 }
 
@@ -34,19 +34,24 @@ export function Card({ card, showGrade = true }: CardProps) {
         <div className="flex flex-col gap-1">
           {showGrade && (
             <div className="flex justify-between items-center">
-              <span className={`text-xs font-black uppercase tracking-widest ${GRADE_COLORS[card.grade]}`}>
+              <span className={`text-xs font-black uppercase tracking-widest ${GRADE_COLORS[card.grade!]}`}>
                 {card.grade}
               </span>
               <span className="text-[10px] text-white/40 uppercase tracking-tighter">
-                {card.gender}
+                {card.category}
               </span>
             </div>
           )}
           <h3 className="text-xl font-bold text-white truncate leading-none">{card.name}</h3>
           <p className="text-sm text-white/70 font-medium">{card.group.toLowerCase()}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
-            {card.album} • {card.debut}
-          </p>
+          <div className="flex justify-between items-center mt-1">
+             <p className="text-[10px] text-white/40 uppercase tracking-widest">
+               {card.era} • {card.year}
+             </p>
+             {card.isNew && (
+               <span className="text-[9px] bg-accent text-black px-1 rounded font-bold uppercase">New</span>
+             )}
+          </div>
         </div>
       </div>
 

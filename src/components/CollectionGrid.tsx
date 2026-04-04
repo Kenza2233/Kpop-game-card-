@@ -4,23 +4,23 @@ import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import { Card } from './Card';
 import { useState } from 'react';
-import { Grade } from '../lib/types';
+import { GradeFilter } from '../lib/types';
 
 export function CollectionGrid() {
-  const { userStats } = useGame();
-  const [filter, setFilter] = useState<Grade | 'All'>('All');
+  const { state } = useGame();
+  const [filter, setFilter] = useState<GradeFilter>('all');
 
-  const filteredCollection = filter === 'All'
-    ? userStats.collection
-    : userStats.collection.filter(c => c.grade === filter);
+  const filteredCollection = filter === 'all'
+    ? state.ownedCards
+    : state.ownedCards.filter(c => c.grade === filter);
 
-  const grades: (Grade | 'All')[] = ['All', 'R', 'SR', 'SSR', 'UR'];
+  const grades: GradeFilter[] = ['all', 'R', 'SR', 'SSR', 'UR'];
 
   return (
     <div className="py-12 px-6 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-        <h2 className="text-3xl font-black text-white uppercase tracking-tight">
-          MY COLLECTION ({userStats.collection.length})
+        <h2 className="text-4xl font-black text-white uppercase tracking-tighter italic">
+          COLLECTION ({state.ownedCards.length})
         </h2>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -28,10 +28,10 @@ export function CollectionGrid() {
             <button
               key={g}
               onClick={() => setFilter(g)}
-              className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest transition-all border ${
+              className={`px-5 py-2 rounded-xl text-xs font-black tracking-widest transition-all border ${
                 filter === g
-                  ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
-                  : 'bg-card-bg border-white/10 text-white/40 hover:bg-white/5'
+                  ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-105'
+                  : 'bg-card-bg border-white/5 text-white/30 hover:bg-white/10'
               }`}
             >
               {g}
@@ -40,24 +40,24 @@ export function CollectionGrid() {
         </div>
       </div>
 
-      {userStats.collection.length === 0 ? (
+      {state.ownedCards.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <p className="text-white/30 text-xl mb-6 italic tracking-tight font-medium">
-            Your collection is empty. Go and pull some cards!
+          <p className="text-white/20 text-2xl mb-6 italic tracking-tighter font-black">
+            NO CARDS COLLECTED YET.
           </p>
         </div>
       ) : (
         <motion.div
           layout
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8"
         >
           {filteredCollection.map((card) => (
             <motion.div
               layout
               key={card.instanceId}
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.4 }}
             >
               <Card card={card} />
             </motion.div>

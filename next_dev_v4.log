@@ -1,0 +1,13 @@
+
+> kpop-gacha@0.1.0 dev
+> next dev
+
+   ▲ Next.js 14.1.0
+   - Local:        http://localhost:3000
+
+ ✓ Ready in 1876ms
+ ○ Compiling / ...
+ ✓ Compiled / in 11.7s (1287 modules)
+ ✓ Compiled in 718ms (637 modules)
+ ○ Compiling /collection ...
+ ✓ Compiled /collection in 780ms (1281 modules)

@@ -1,4 +1,4 @@
-import { RawCard, Card, Grade, GRADE_WEIGHTS } from './types';
+import { KpopCard, Grade, GRADE_WEIGHTS } from './types';
 
 /**
  * Cleans idol name by removing common emojis and trimming whitespace.
@@ -14,26 +14,11 @@ export function cleanIdolName(name: string): string {
 }
 
 /**
- * Removes duplicate entries based on name + group.
+ * Randomly assigns UR, SSR, SR, or R grades to cards based on defined weights if they don't have one.
  */
-export function deduplicateCards(cards: RawCard[]): RawCard[] {
-  const seen = new Set<string>();
-  return cards.filter(card => {
-    const key = `${card.name.toLowerCase()}-${card.group.toLowerCase()}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-}
-
-/**
- * Randomly assigns UR, SSR, SR, or R grades to cards based on defined weights.
- */
-export function assignGrades(cards: RawCard[]): Card[] {
+export function processCards(cards: KpopCard[]): KpopCard[] {
   return cards.map(card => {
-    const grade = getRandomGrade();
+    const grade = card.grade || getRandomGrade();
     return {
       ...card,
       grade,
@@ -42,7 +27,7 @@ export function assignGrades(cards: RawCard[]): Card[] {
   });
 }
 
-function getRandomGrade(): Grade {
+export function getRandomGrade(): Grade {
   const totalWeight = Object.values(GRADE_WEIGHTS).reduce((acc, weight) => acc + weight, 0);
   let random = Math.random() * totalWeight;
 
@@ -54,4 +39,19 @@ function getRandomGrade(): Grade {
   }
 
   return 'R'; // Fallback
+}
+
+/**
+ * Removes duplicate cards from an array based on their ID.
+ */
+export function deduplicateCards(cards: KpopCard[]): KpopCard[] {
+  const seenIds = new Set<string>();
+  return cards.filter((card) => {
+    if (!card.id) return true; // Keep cards without IDs
+    if (seenIds.has(card.id)) {
+      return false;
+    }
+    seenIds.add(card.id);
+    return true;
+  });
 }
