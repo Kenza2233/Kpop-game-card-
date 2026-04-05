@@ -42,18 +42,19 @@ export function getGradeConfig(grade: Grade) {
       return {
         label: 'Ultra Rare',
         borderColor: '#FFD700',
-        gradient: 'linear-gradient(135deg, #FFD700, #FFA500, #FF6347)',
+        gradient: 'radial-gradient(circle at center, #FFD700, #FFA500, #FF6347)',
         glowColor: 'rgba(255, 215, 0, 0.6)',
         shimmer: true,
         sparkleParticles: 12,
         animationDuration: '3s',
-        textColor: '#FFD700'
+        textColor: '#FFD700',
+        pattern: 'repeating-conic-gradient(#FFD700 0% 25%, transparent 0% 50%) 50% / 20px 20px'
       };
     case 'SSR':
       return {
         label: 'Super Super Rare',
         borderColor: '#C084FC',
-        gradient: 'linear-gradient(135deg, #C084FC, #818CF8, #6366F1)',
+        gradient: 'linear-gradient(var(--holo-angle, 135deg), #C084FC, #818CF8, #6366F1, #C084FC)',
         glowColor: 'rgba(192, 132, 252, 0.5)',
         shimmer: true,
         holographic: true,

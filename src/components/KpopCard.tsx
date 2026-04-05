@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { KpopCard, Grade } from '../lib/types';
 import { getGradeConfig } from '../lib/cardUtils';
-import { useIdolImage } from '../hooks/useIdolImage';
+import { cn } from '../lib/utils';
 
 interface KpopCardProps {
   card: KpopCard;
@@ -23,16 +22,112 @@ const SIZES = {
   xl: 'w-72 md:w-80 h-[480px] md:h-[560px]',
 };
 
+const IMAGE_SIZES = {
+  sm: 'w-full h-32',
+  md: 'w-full h-48',
+  lg: 'w-full h-64',
+  xl: 'w-full h-80',
+};
+
+const IdolImage = ({ card, size }: { card: KpopCard; size: 'sm' | 'md' | 'lg' | 'xl' }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const cacheKey = `img_${card.id}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached) {
+      setImageUrl(cached);
+      setLoading(false);
+      return;
+    }
+
+    const fetchImage = async () => {
+      try {
+        const res = await fetch(`/api/get-image?group=${encodeURIComponent(card.group)}&idol=${encodeURIComponent(card.name)}`);
+        const data = await res.json();
+
+        if (data.imageUrl) {
+          setImageUrl(data.imageUrl);
+          localStorage.setItem(cacheKey, data.imageUrl);
+        } else {
+          setError(true);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchImage();
+  }, [card.id, card.group, card.name]);
+
+  const gradeConfig = getGradeConfig(card.grade as Grade || 'R');
+
+  if (error || !imageUrl) {
+    const initials = card.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center font-display font-bold text-white relative overflow-hidden",
+          IMAGE_SIZES[size],
+          card.grade === 'UR' && "animate-pulse-glow"
+        )}
+        style={{
+          background: gradeConfig.gradient,
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+        }}
+      >
+        {/* Pattern Overlay for UR */}
+        {card.grade === 'UR' && gradeConfig.pattern && (
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: gradeConfig.pattern }} />
+        )}
+
+        {/* Holographic Angle for SSR */}
+        {card.grade === 'SSR' && (
+            <div className="absolute inset-0 animate-holo-shift opacity-30 pointer-events-none bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+        )}
+
+        <div className="text-center z-10">
+          <div className="text-3xl font-black italic tracking-tighter">{initials}</div>
+          <div className="text-[10px] mt-1 opacity-80 uppercase font-black">{card.name}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className={cn("animate-pulse bg-slate-800", IMAGE_SIZES[size])}>
+        <div className="flex items-center justify-center h-full">
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={`${card.name} - ${card.group}`}
+      className={cn("object-cover", IMAGE_SIZES[size])}
+      onError={() => setError(true)}
+      loading="lazy"
+    />
+  );
+};
+
 export const KpopCardComponent = React.memo(({
   card,
   size = 'md',
   onClick,
   showGrade = true,
-  isHolographic = false,
   isNew = false
 }: KpopCardProps) => {
-  const { imageUrl, isLoading, error } = useIdolImage(card.group, card.name);
-  const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
@@ -46,10 +141,6 @@ export const KpopCardComponent = React.memo(({
     setMousePos({ x, y });
   };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  };
-
   return (
     <motion.div
       ref={cardRef}
@@ -58,33 +149,18 @@ export const KpopCardComponent = React.memo(({
       whileHover={{ scale: 1.05, y: -5 }}
       whileTap={{ scale: 0.95 }}
       layout
-      className={`relative rounded-2xl overflow-hidden group cursor-pointer ${SIZES[size]} transition-all`}
+      className={cn(
+        "relative rounded-2xl overflow-hidden group cursor-pointer transition-all",
+        SIZES[size]
+      )}
       style={{
         boxShadow: `0 0 25px ${gradeConfig.glowColor}`,
         border: `2px solid ${gradeConfig.borderColor}`,
       }}
     >
       {/* Background & Image */}
-      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-        {(!imageError && imageUrl) ? (
-          <Image
-            src={imageUrl}
-            alt={card.name}
-            fill
-            priority={size === 'xl'}
-            className="object-cover group-hover:scale-110 transition-transform duration-700"
-            onError={() => setImageError(true)}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-        ) : (
-          <div className={`w-full h-full flex flex-col items-center justify-center p-4`} style={{ background: gradeConfig.gradient }}>
-             {isLoading ? (
-               <div className="animate-pulse flex items-center justify-center w-full h-full bg-white/5" />
-             ) : (
-               <span className="text-4xl font-black text-white/50">{getInitials(card.name)}</span>
-             )}
-          </div>
-        )}
+      <div className="absolute inset-0 bg-slate-900">
+        <IdolImage card={card} size={size} />
       </div>
 
       {/* Overlays */}
