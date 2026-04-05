@@ -23,10 +23,10 @@ export default function GachaPage() {
   const canFreePull = !state.lastFreePull || (Date.now() - state.lastFreePull >= 24 * 60 * 60 * 1000);
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
+    <div className="min-h-screen bg-background">
       <Header currency={state.currency} totalCards={state.ownedCards.length} sparkPoints={currentBanner ? (state.sparkPoints[currentBanner.id] || 0) : 0} />
 
-      <div className="max-w-7xl mx-auto pt-8 px-6">
+      <div className="max-w-7xl mx-auto px-6">
          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
             <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase">Gacha Center</h1>
 

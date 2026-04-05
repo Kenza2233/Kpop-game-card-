@@ -29,7 +29,7 @@ export default function Home() {
     new Date(state.lastDailyBonus).toDateString() === new Date().toDateString();
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
+    <div className="min-h-screen bg-background">
       <Header
         currency={state.currency}
         totalCards={state.ownedCards.length}

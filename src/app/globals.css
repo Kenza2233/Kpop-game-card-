@@ -123,3 +123,14 @@ body {
 .focus-ring {
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kpop-pink focus-visible:ring-offset-2 focus-visible:ring-offset-kpop-dark;
 }
+
+main {
+  padding-top: 72px;
+  padding-bottom: 80px;
+}
+
+@media (min-width: 768px) {
+  main {
+    padding-bottom: 32px;
+  }
+}

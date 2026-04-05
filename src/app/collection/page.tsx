@@ -67,10 +67,10 @@ export default function CollectionPage() {
   const totalUnique = new Set(state.ownedCards.map(c => c.id)).size;
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
+    <div className="min-h-screen bg-background">
       <Header currency={state.currency} totalCards={state.ownedCards.length} sparkPoints={0} />
 
-      <div className="max-w-7xl mx-auto pt-8 px-6">
+      <div className="max-w-7xl mx-auto px-6">
          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase">My Collection</h1>
             <div className="relative w-full md:w-80 group">
@@ -96,7 +96,7 @@ export default function CollectionPage() {
         resultCount={{ showing: filteredCards.length, total: state.ownedCards.length }}
       />
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 px-6 pb-24">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 px-6">
          <div className="lg:col-span-8">
             <CardGrid
               cards={filteredCards}

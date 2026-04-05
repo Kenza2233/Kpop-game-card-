@@ -28,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${righteous.variable} ${inter.variable}`}>
-      <body className="antialiased font-body bg-kpop-dark text-white pb-24 md:pb-0">
+      <body className="antialiased font-body bg-kpop-dark text-white">
         <AchievementProvider>
           <CollectionProvider>
             <main className="min-h-screen">
