@@ -68,7 +68,7 @@ const INITIAL_STATE: CollectionState = {
   version: CURRENT_VERSION,
   ownedCards: [],
   totalPulls: 0,
-  currency: 1000,
+  currency: 500,
   urPityCounter: 0,
   ssrPityCounter: 0,
   sparkPoints: {},
@@ -308,7 +308,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     };
 
     // Check achievements
-    const newlyUnlocked = checkAchievements(newState);
+    const newlyUnlocked = checkAchievements(newState, allCards);
     if (newlyUnlocked.length > 0) {
       newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
       newlyUnlocked.forEach(a => addToast(a));
@@ -351,7 +351,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     };
 
     // Check achievements
-    const newlyUnlocked = checkAchievements(newState);
+    const newlyUnlocked = checkAchievements(newState, allCards);
     if (newlyUnlocked.length > 0) {
       newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
       newlyUnlocked.forEach(a => addToast(a));
@@ -388,7 +388,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     };
 
     // Check achievements
-    const newlyUnlocked = checkAchievements(newState);
+    const newlyUnlocked = checkAchievements(newState, allCards);
     if (newlyUnlocked.length > 0) {
       newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
       newlyUnlocked.forEach(a => addToast(a));
@@ -401,7 +401,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       streakDay: newStreak,
       message: `Claimed ${amount} coins! ${newStreak === 7 ? '7-day streak bonus!' : `Streak: ${newStreak} days`}`
     };
-  }, [state, checkAchievements, addToast]);
+  }, [state, checkAchievements, addToast, allCards]);
 
   const convertDuplicates = useCallback(() => {
     const seen = new Set<string>();

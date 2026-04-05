@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { CollectionState, Grade } from '../lib/types';
+import { CollectionState, Grade, KpopCard } from '../lib/types';
 
 interface Achievement {
   id: string;
   name: string;
   description: string;
-  condition: (state: CollectionState) => boolean;
-  progress: (state: CollectionState) => number;
+  condition: (state: CollectionState, allCards: KpopCard[]) => boolean;
+  progress: (state: CollectionState, allCards: KpopCard[]) => number;
 }
 
 const ACHIEVEMENTS: Achievement[] = [
@@ -58,13 +58,29 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'completionist',
     name: 'Completionist',
     description: 'Own all cards from one group',
-    condition: (state) => {
-      const groups = new Set(state.ownedCards.map(c => c.group));
-      // In a real scenario, we'd need the 'allCards' to verify.
-      // Assuming for now it returns false until we have access to allCards.
-      return false;
+    condition: (state, allCards) => {
+      const ownedIds = new Set(state.ownedCards.map(c => c.id));
+      const groups = Array.from(new Set(allCards.map(c => c.group)));
+
+      return groups.some(group => {
+        const groupCards = allCards.filter(c => c.group === group);
+        if (groupCards.length === 0) return false;
+        return groupCards.every(c => ownedIds.has(c.id));
+      });
     },
-    progress: (state) => 0,
+    progress: (state, allCards) => {
+      const ownedIds = new Set(state.ownedCards.map(c => c.id));
+      const groups = Array.from(new Set(allCards.map(c => c.group)));
+
+      let maxProgress = 0;
+      groups.forEach(group => {
+        const groupCards = allCards.filter(c => c.group === group);
+        if (groupCards.length === 0) return;
+        const ownedInGroup = groupCards.filter(c => ownedIds.has(c.id)).length;
+        maxProgress = Math.max(maxProgress, ownedInGroup / groupCards.length);
+      });
+      return maxProgress;
+    },
   },
   {
     id: 'streak_master',
@@ -92,11 +108,11 @@ const ACHIEVEMENTS: Achievement[] = [
 export function useAchievements(state: CollectionState) {
   const unlockedIds = useMemo(() => state.achievements || [], [state.achievements]);
 
-  const checkAchievements = useCallback((currentState: CollectionState) => {
+  const checkAchievements = useCallback((currentState: CollectionState, allCards: KpopCard[]) => {
     const newlyUnlocked: Achievement[] = [];
 
     ACHIEVEMENTS.forEach((achievement) => {
-      if (!unlockedIds.includes(achievement.id) && achievement.condition(currentState)) {
+      if (!unlockedIds.includes(achievement.id) && achievement.condition(currentState, allCards)) {
         newlyUnlocked.push(achievement);
       }
     });
@@ -104,10 +120,10 @@ export function useAchievements(state: CollectionState) {
     return newlyUnlocked;
   }, [unlockedIds]);
 
-  const getProgress = (id: string) => {
+  const getProgress = (id: string, allCards: KpopCard[]) => {
     const achievement = ACHIEVEMENTS.find(a => a.id === id);
     if (!achievement) return 0;
-    return achievement.progress(state);
+    return achievement.progress(state, allCards);
   };
 
   return {

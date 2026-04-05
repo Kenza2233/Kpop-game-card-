@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { KpopCard, Grade } from '../lib/types';
 import { getGradeConfig } from '../lib/cardUtils';
 import { cn } from '../lib/utils';
+import ErrorBoundary from './ErrorBoundary';
 
 interface KpopCardProps {
   card: KpopCard;
@@ -141,29 +142,40 @@ export const KpopCardComponent = React.memo(({
     setMousePos({ x, y });
   };
 
-  return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onClick={() => onClick?.(card)}
-      whileHover={{ scale: 1.05, y: -5 }}
-      whileTap={{ scale: 0.95 }}
-      layout
-      className={cn(
-        "relative rounded-2xl overflow-hidden group cursor-pointer transition-all",
-        SIZES[size]
-      )}
-      style={{
-        boxShadow: `0 0 25px ${gradeConfig.glowColor}`,
-        border: `2px solid ${gradeConfig.borderColor}`,
-      }}
+  const FallbackCard = () => (
+    <div
+      className={cn("flex items-center justify-center bg-slate-900", SIZES[size])}
     >
-      {/* Background & Image */}
-      <div className="absolute inset-0 bg-slate-900">
-        <IdolImage card={card} size={size} />
-      </div>
+       <div className="text-center text-[10px] text-white/40 uppercase font-black px-4">
+         Image Failed
+       </div>
+    </div>
+  );
 
-      {/* Overlays */}
+  return (
+    <ErrorBoundary fallback={<FallbackCard />}>
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onClick={() => onClick?.(card)}
+        whileHover={{ scale: 1.05, y: -5 }}
+        whileTap={{ scale: 0.95 }}
+        layout
+        className={cn(
+          "relative rounded-2xl overflow-hidden group cursor-pointer transition-all",
+          SIZES[size]
+        )}
+        style={{
+          boxShadow: `0 0 25px ${gradeConfig.glowColor}`,
+          border: `2px solid ${gradeConfig.borderColor}`,
+        }}
+      >
+        {/* Background & Image */}
+        <div className="absolute inset-0 bg-slate-900">
+          <IdolImage card={card} size={size} />
+        </div>
+
+        {/* Overlays */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
 
       {/* Grade Shimmer/Holo Effects */}
@@ -235,10 +247,11 @@ export const KpopCardComponent = React.memo(({
          </p>
       </div>
 
-      {card.grade === 'UR' && (
-        <div className="absolute inset-0 z-5 border-4 border-yellow-400/20 animate-pulse pointer-events-none" />
-      )}
-    </motion.div>
+        {card.grade === 'UR' && (
+          <div className="absolute inset-0 z-5 border-4 border-yellow-400/20 animate-pulse pointer-events-none" />
+        )}
+      </motion.div>
+    </ErrorBoundary>
   );
 });
 

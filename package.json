@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "transform-data": "tsx scripts/transformData.ts"
+    "transform-data": "npx ts-node scripts/transformData.ts",
+    "populate-idols": "npx ts-node scripts/populatePopularIdols.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -17,7 +18,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tailwind-merge": "^3.5.0",
-    "z-ai-web-dev-sdk": "^0.0.17"
+    "z-ai-web-dev-sdk": "latest"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
