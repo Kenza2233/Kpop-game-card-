@@ -20,6 +20,8 @@ import {
 } from '../lib/types';
 import { processCards, deduplicateCards, generateInstanceId } from '../lib/cardUtils';
 import { fetchCardData } from '../lib/dataFetcher';
+import { useAchievements } from '../hooks/useAchievements';
+import { useAchievementToasts } from '../components/AchievementToast';
 
 interface CollectionState {
   version: number;
@@ -81,6 +83,8 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CollectionState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { checkAchievements } = useAchievements(state);
+  const { addToast } = useAchievementToasts();
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -273,19 +277,28 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         results.push(result);
     }
 
-    setState(prev => ({
-        ...prev,
-        currency: prev.currency - cost,
-        ownedCards: [...prev.ownedCards, ...newOwnedCards],
+    const newState = {
+        ...state,
+        currency: state.currency - cost,
+        ownedCards: [...state.ownedCards, ...newOwnedCards],
         totalPulls: currentTotalPulls,
         urPityCounter: currentURPity,
         ssrPityCounter: currentSSRPity,
         sparkPoints: currentSparkPoints,
-        pullHistory: [...newHistory, ...prev.pullHistory].slice(0, 100)
-    }));
+        pullHistory: [...newHistory, ...state.pullHistory].slice(0, 100)
+    };
+
+    // Check achievements
+    const newlyUnlocked = checkAchievements(newState);
+    if (newlyUnlocked.length > 0) {
+      newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
+      newlyUnlocked.forEach(a => addToast(a));
+    }
+
+    setState(newState);
 
     return results;
-  }, [allCards, state.currency, state.urPityCounter, state.ssrPityCounter, state.totalPulls, state.sparkPoints, performSinglePullLogic]);
+  }, [allCards, state, performSinglePullLogic, checkAchievements, addToast]);
 
   const claimFreePull = useCallback((banner: Banner): GachaPullResult | null => {
     const now = Date.now();
@@ -297,31 +310,38 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
     const { result, nextUR, nextSSR } = performSinglePullLogic(banner, allCards, state.urPityCounter, state.ssrPityCounter, false);
 
-    setState(prev => {
-        const points = SPARK_POINTS_PER_PULL[result.card.grade as Grade || 'R'];
-        return {
-            ...prev,
-            lastFreePull: now,
-            ownedCards: [...prev.ownedCards, result.card],
-            totalPulls: prev.totalPulls + 1,
-            urPityCounter: nextUR,
-            ssrPityCounter: nextSSR,
-            sparkPoints: {
-                ...prev.sparkPoints,
-                [banner.id]: (prev.sparkPoints[banner.id] || 0) + points
-            },
-            pullHistory: [{
-                pullNumber: prev.totalPulls + 1,
-                card: result.card,
-                banner: banner.type,
-                timestamp: now,
-                currencySpent: 0
-            }, ...prev.pullHistory].slice(0, 100)
-        };
-    });
+    const points = SPARK_POINTS_PER_PULL[result.card.grade as Grade || 'R'];
+    const newState = {
+        ...state,
+        lastFreePull: now,
+        ownedCards: [...state.ownedCards, result.card],
+        totalPulls: state.totalPulls + 1,
+        urPityCounter: nextUR,
+        ssrPityCounter: nextSSR,
+        sparkPoints: {
+            ...state.sparkPoints,
+            [banner.id]: (state.sparkPoints[banner.id] || 0) + points
+        },
+        pullHistory: [{
+            pullNumber: state.totalPulls + 1,
+            card: result.card,
+            banner: banner.type,
+            timestamp: now,
+            currencySpent: 0
+        }, ...state.pullHistory].slice(0, 100)
+    };
+
+    // Check achievements
+    const newlyUnlocked = checkAchievements(newState);
+    if (newlyUnlocked.length > 0) {
+      newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
+      newlyUnlocked.forEach(a => addToast(a));
+    }
+
+    setState(newState);
 
     return result;
-  }, [state.lastFreePull, state.urPityCounter, state.ssrPityCounter, performSinglePullLogic, allCards]);
+  }, [state, performSinglePullLogic, allCards, checkAchievements, addToast]);
 
   const claimDailyBonus = useCallback(() => {
     const now = new Date();
@@ -340,20 +360,29 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
     const amount = newStreak === 7 ? DAILY_BONUS.DAY_7 : DAILY_BONUS.BASE;
 
-    setState(prev => ({
-      ...prev,
-      currency: prev.currency + amount,
+    const newState = {
+      ...state,
+      currency: state.currency + amount,
       dailyStreak: newStreak,
       lastDailyBonus: Date.now(),
       lastStreakDate: Date.now()
-    }));
+    };
+
+    // Check achievements
+    const newlyUnlocked = checkAchievements(newState);
+    if (newlyUnlocked.length > 0) {
+      newState.achievements = [...(state.achievements || []), ...newlyUnlocked.map(a => a.id)];
+      newlyUnlocked.forEach(a => addToast(a));
+    }
+
+    setState(newState);
 
     return {
       coins: amount,
       streakDay: newStreak,
       message: `Claimed ${amount} coins! ${newStreak === 7 ? '7-day streak bonus!' : `Streak: ${newStreak} days`}`
     };
-  }, [state.lastDailyBonus, state.dailyStreak]);
+  }, [state, checkAchievements, addToast]);
 
   const convertDuplicates = useCallback(() => {
     const seen = new Set<string>();
@@ -414,7 +443,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       currentBannerId: bannerId,
-      sparkPoints: {}
+      // We don't reset sparkPoints here as they are per bannerId in the state object
     }));
   }, []);
 

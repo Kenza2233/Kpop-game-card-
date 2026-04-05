@@ -14,7 +14,7 @@ import { Search } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 
 export default function CollectionPage() {
-  const { state, exportCollection, importCollection } = useCollection();
+  const { state, exportCollection, importCollection, convertDuplicates } = useCollection();
   const { cards, loading } = useCardCollection();
 
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>('all');
@@ -135,6 +135,12 @@ export default function CollectionPage() {
                      reader.readAsText(file);
                   };
                   input.click();
+               }}
+               onConvertDuplicates={() => {
+                  const { cardsRemoved, coinsGained } = convertDuplicates();
+                  if (cardsRemoved > 0) {
+                     alert(`Successfully converted ${cardsRemoved} duplicates for ${coinsGained} coins!`);
+                  }
                }}
             />
          </aside>

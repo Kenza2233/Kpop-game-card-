@@ -26,16 +26,16 @@ export function useCardCollection() {
       const data = await fetchCardData('/data/kpop_data.json');
       const rawCards: KpopCard[] = Array.isArray(data) ? data : (data as any).cards || [];
 
-      // Clean, Deduplicate, Process (generate IDs)
-      const cleaned = rawCards.map(c => ({ ...c, name: cleanIdolName(c.name) }));
-      const deduplicated = deduplicateCards(cleaned);
-      const processed = processCards(deduplicated);
+      // The data is already cleaned and processed by the transform script,
+      // but we ensure grades are valid and IDs are present just in case.
+      const validGrades = ['UR', 'SSR', 'SR', 'R'];
+      const processed = rawCards.map(c => ({
+        ...c,
+        grade: (c.grade && validGrades.includes(c.grade)) ? c.grade : 'R'
+      }));
 
-      // Assign Random Grades (initial distribution)
-      const withGrades = assignRandomGrades(processed);
-
-      cachedCards = withGrades;
-      setCards(withGrades);
+      cachedCards = processed;
+      setCards(processed);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load card data');
       console.error('Error in useCardCollection:', err);

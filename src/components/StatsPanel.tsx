@@ -11,7 +11,8 @@ import {
   Heart,
   Calendar,
   Activity,
-  Zap
+  Zap,
+  RefreshCcw
 } from 'lucide-react';
 import { CollectionState, Grade } from '../lib/types';
 import { formatNumber } from '../lib/cardUtils';
@@ -22,6 +23,7 @@ interface StatsPanelProps {
   totalCardsInGame: number;
   onExport: () => void;
   onImport: () => void;
+  onConvertDuplicates?: () => void;
 }
 
 export function StatsPanel({
@@ -29,13 +31,16 @@ export function StatsPanel({
   totalUniqueCards,
   totalCardsInGame,
   onExport,
-  onImport
+  onImport,
+  onConvertDuplicates
 }: StatsPanelProps) {
 
   const completionRate = (totalUniqueCards / totalCardsInGame) * 100 || 0;
 
   const gradeCount = (grade: Grade) =>
     new Set(state.ownedCards.filter(c => c.grade === grade).map(c => c.id)).size;
+
+  const duplicateCount = state.ownedCards.length - totalUniqueCards;
 
   const stats = [
     { label: 'Total Pulls', value: formatNumber(state.totalPulls), icon: Zap, color: 'text-primary' },
@@ -93,6 +98,28 @@ export function StatsPanel({
            </div>
          ))}
       </div>
+
+      {/* Duplicate Conversion */}
+      {duplicateCount > 0 && onConvertDuplicates && (
+        <button
+          onClick={onConvertDuplicates}
+          className="group relative bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20 rounded-[32px] p-6 flex items-center justify-between hover:from-accent/20 hover:to-primary/20 transition-all text-left"
+        >
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-accent uppercase tracking-widest mb-1 flex items-center gap-2">
+              <RefreshCcw className="w-3 h-3 animate-spin-slow" />
+              Duplicates Found
+            </span>
+            <span className="text-xl font-black text-white italic tracking-tighter">
+              {duplicateCount} <span className="text-white/20 text-xs">Unconverted</span>
+            </span>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Convert to credits now</p>
+          </div>
+          <div className="w-12 h-12 bg-accent/20 rounded-2xl flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+             <Coins className="w-6 h-6" />
+          </div>
+        </button>
+      )}
 
       {/* Grade Breakdown */}
       <div className="bg-white/5 border border-white/5 rounded-[32px] p-6">

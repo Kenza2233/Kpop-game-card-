@@ -1,64 +1,64 @@
 {
   "cards": [
     {
-      "id": "1",
-      "name": "Karina",
-      "group": "aespa",
-      "grade": "UR",
-      "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400",
-      "era": "Drama",
-      "year": 2023
-    },
-    {
-      "id": "2",
-      "name": "Winter",
-      "group": "aespa",
-      "grade": "SSR",
-      "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=400",
-      "era": "Drama",
-      "year": 2023
-    },
-    {
-      "id": "3",
-      "name": "Sana",
-      "group": "TWICE",
-      "grade": "SR",
-      "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400",
-      "era": "Ready to Be",
-      "year": 2023
-    },
-    {
-      "id": "4",
-      "name": "Momo",
-      "group": "TWICE",
-      "grade": "R",
-      "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=400",
-      "era": "Ready to Be",
-      "year": 2023
-    },
-    {
-      "id": "5",
-      "name": "Lisa",
-      "group": "BLACKPINK",
-      "grade": "SSR",
-      "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=400",
-      "era": "Born Pink",
-      "year": 2022
-    },
-    {
-      "id": "6",
+      "id": "blackpink_jennie",
       "name": "Jennie",
       "group": "BLACKPINK",
-      "grade": "UR",
       "category": "Girl Group",
-      "image": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=400",
-      "era": "Born Pink",
-      "year": 2022
+      "grade": "SSR",
+      "image": "/api/get-image?group=BLACKPINK&idol=Jennie",
+      "era": "KPOP Collection",
+      "year": 2024
+    },
+    {
+      "id": "blackpink_lisa",
+      "name": "Lisa",
+      "group": "BLACKPINK",
+      "category": "Girl Group",
+      "grade": "SSR",
+      "image": "/api/get-image?group=BLACKPINK&idol=Lisa",
+      "era": "KPOP Collection",
+      "year": 2024
+    },
+    {
+      "id": "bts_jungkook",
+      "name": "Jungkook",
+      "group": "BTS",
+      "category": "Boy Group",
+      "grade": "UR",
+      "image": "/api/get-image?group=BTS&idol=Jungkook",
+      "era": "KPOP Collection",
+      "year": 2024
+    },
+    {
+      "id": "newjeans_minji",
+      "name": "Minji",
+      "group": "NewJeans",
+      "category": "Girl Group",
+      "grade": "SSR",
+      "image": "/api/get-image?group=NewJeans&idol=Minji",
+      "era": "KPOP Collection",
+      "year": 2024
+    },
+    {
+      "id": "iu_iu",
+      "name": "IU",
+      "group": "IU",
+      "category": "Solo",
+      "grade": "UR",
+      "image": "/api/get-image?group=IU&idol=IU",
+      "era": "KPOP Collection",
+      "year": 2024
+    },
+    {
+      "id": "exo_kai",
+      "name": "Kai",
+      "group": "EXO",
+      "category": "Boy Group",
+      "grade": "SR",
+      "image": "/api/get-image?group=EXO&idol=Kai",
+      "era": "KPOP Collection",
+      "year": 2024
     }
   ]
 }

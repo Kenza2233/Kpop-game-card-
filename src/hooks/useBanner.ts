@@ -34,9 +34,11 @@ const INITIAL_BANNERS: Banner[] = [
   },
 ];
 
+import { useCollection } from '../context/CollectionContext';
+
 export function useBanner() {
-  const [banners, setBanners] = useState<Banner[]>(INITIAL_BANNERS);
-  const [activeBannerId, setActiveBannerId] = useState<string>(INITIAL_BANNERS[0].id);
+  const { state, setActiveBanner } = useCollection();
+  const [banners] = useState<Banner[]>(INITIAL_BANNERS);
 
   const activeBanners = useMemo(() => {
     const now = new Date().getTime();
@@ -48,13 +50,13 @@ export function useBanner() {
   }, [banners]);
 
   const currentBanner = useMemo(() => {
-    return activeBanners.find(b => b.id === activeBannerId) || activeBanners[0];
-  }, [activeBanners, activeBannerId]);
+    return activeBanners.find(b => b.id === state.currentBannerId) || activeBanners[0];
+  }, [activeBanners, state.currentBannerId]);
 
   return {
     banners: activeBanners,
     currentBanner,
-    setActiveBannerId,
+    setActiveBannerId: setActiveBanner,
     allBanners: banners
   };
 }

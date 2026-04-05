@@ -62,19 +62,32 @@ export function AchievementToast({ id, name, description, onClose }: Achievement
   );
 }
 
+const AchievementContext = React.createContext<{
+  addToast: (achievement: { id: string; name: string; description: string }) => void;
+} | undefined>(undefined);
+
+export function useAchievementToasts() {
+  const context = React.useContext(AchievementContext);
+  if (!context) throw new Error('useAchievementToasts must be used within AchievementProvider');
+  return context;
+}
+
 export function AchievementProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<{ id: string; name: string; description: string }[]>([]);
 
-  const addToast = (achievement: { id: string; name: string; description: string }) => {
-    setToasts(prev => [...prev, achievement]);
-  };
+  const addToast = React.useCallback((achievement: { id: string; name: string; description: string }) => {
+    setToasts(prev => {
+      if (prev.find(t => t.id === achievement.id)) return prev;
+      return [...prev, achievement];
+    });
+  }, []);
 
-  const removeToast = (id: string) => {
+  const removeToast = React.useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
 
   return (
-    <>
+    <AchievementContext.Provider value={{ addToast }}>
       {children}
       <div className="fixed top-24 right-6 z-[200] flex flex-col gap-4">
         <AnimatePresence>
@@ -83,6 +96,6 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
           ))}
         </AnimatePresence>
       </div>
-    </>
+    </AchievementContext.Provider>
   );
 }

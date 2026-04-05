@@ -6,6 +6,7 @@ import { Sparkles, Coins, Info, Clock, ChevronDown, ChevronUp, History, X } from
 import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST, DUPLICATE_REWARDS, Grade } from '../lib/types';
 import { KpopCardComponent } from './KpopCard';
 import { useCardCollection } from '@/hooks/useCardCollection';
+import { useCollection } from '@/context/CollectionContext';
 
 interface GachaMachineProps {
   banner: Banner;
@@ -33,7 +34,9 @@ export function GachaMachine({
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
   const [revealedIndex, setRevealedIndex] = useState(-1);
   const [showMobileStats, setShowMobileStats] = useState(false);
+  const [showSparkShop, setShowSparkShop] = useState(false);
   const { cards: allCards } = useCardCollection();
+  const { sparkCard } = useCollection();
 
   const handlePull = async (count: number) => {
     if (isPulling) return;
@@ -226,12 +229,22 @@ export function GachaMachine({
               color="#C084FC"
               approach={SOFT_PITY.SSR.start}
             />
-            <StatCard
-              label="Spark Points"
-              current={sparkPoints}
-              max={SPARK_COST}
-              color="#A855F7"
-            />
+            <div className="relative group">
+              <StatCard
+                label="Spark Points"
+                current={sparkPoints}
+                max={SPARK_COST}
+                color="#A855F7"
+              />
+              {sparkPoints >= SPARK_COST && (
+                <button
+                  onClick={() => setShowSparkShop(true)}
+                  className="absolute -top-2 -right-2 bg-accent text-black text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-bounce hover:scale-110 transition-transform"
+                >
+                  SPEND!
+                </button>
+              )}
+            </div>
          </div>
 
          <button
@@ -250,6 +263,51 @@ export function GachaMachine({
       </div>
 
       <AnimatePresence>
+        {showSparkShop && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-xl p-6"
+          >
+            <div className="bg-slate-900 border border-white/10 rounded-[40px] w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black italic tracking-tighter text-white uppercase">Spark Shop</h2>
+                  <p className="text-white/40 text-sm font-medium">Exchange {SPARK_COST} points for any card in the collection.</p>
+                </div>
+                <button
+                  onClick={() => setShowSparkShop(false)}
+                  className="p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {allCards.filter(c => c.grade === 'UR' || c.grade === 'SSR').map(card => (
+                  <button
+                    key={card.id}
+                    onClick={() => {
+                      if (confirm(`Exchange ${SPARK_COST} points for ${card.name}?`)) {
+                        sparkCard(banner.id, card.id);
+                        setShowSparkShop(false);
+                      }
+                    }}
+                    className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all"
+                  >
+                    <img src={card.image} alt={card.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-left">
+                       <span className="text-[10px] font-black text-primary uppercase">{card.grade}</span>
+                       <span className="text-xs font-bold text-white truncate">{card.name}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {results && results.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
