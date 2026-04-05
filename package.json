@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "transform-data": "npx ts-node scripts/transformData.ts",
-    "populate-idols": "npx ts-node scripts/populatePopularIdols.ts"
+    "prebuild": "npx tsx scripts/buildData.ts",
+    "transform-data": "npx tsx scripts/buildData.ts",
+    "populate-idols": "npx tsx scripts/populatePopularIdols.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

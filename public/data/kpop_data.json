@@ -1,62 +1,12 @@
 {
   "cards": [
     {
-      "id": "blackpink_jennie",
-      "name": "Jennie",
-      "group": "BLACKPINK",
+      "id": "aespa_karina",
+      "name": "Karina",
+      "group": "aespa",
       "category": "Girl Group",
-      "grade": "SSR",
-      "image": "/api/get-image?group=BLACKPINK&idol=Jennie",
-      "era": "KPOP Collection",
-      "year": 2024
-    },
-    {
-      "id": "blackpink_lisa",
-      "name": "Lisa",
-      "group": "BLACKPINK",
-      "category": "Girl Group",
-      "grade": "SSR",
-      "image": "/api/get-image?group=BLACKPINK&idol=Lisa",
-      "era": "KPOP Collection",
-      "year": 2024
-    },
-    {
-      "id": "bts_jungkook",
-      "name": "Jungkook",
-      "group": "BTS",
-      "category": "Boy Group",
       "grade": "UR",
-      "image": "/api/get-image?group=BTS&idol=Jungkook",
-      "era": "KPOP Collection",
-      "year": 2024
-    },
-    {
-      "id": "newjeans_minji",
-      "name": "Minji",
-      "group": "NewJeans",
-      "category": "Girl Group",
-      "grade": "SSR",
-      "image": "/api/get-image?group=NewJeans&idol=Minji",
-      "era": "KPOP Collection",
-      "year": 2024
-    },
-    {
-      "id": "iu_iu",
-      "name": "IU",
-      "group": "IU",
-      "category": "Solo",
-      "grade": "UR",
-      "image": "/api/get-image?group=IU&idol=IU",
-      "era": "KPOP Collection",
-      "year": 2024
-    },
-    {
-      "id": "exo_kai",
-      "name": "Kai",
-      "group": "EXO",
-      "category": "Boy Group",
-      "grade": "SR",
-      "image": "/api/get-image?group=EXO&idol=Kai",
+      "image": "/api/get-image?group=aespa&idol=Karina",
       "era": "KPOP Collection",
       "year": 2024
     }
