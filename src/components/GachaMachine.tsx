@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Coins, Info, Clock, ChevronDown, ChevronUp, History, X } from 'lucide-react';
 import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST, DUPLICATE_REWARDS, Grade } from '../lib/types';
+import { getGradeConfig } from '../lib/cardUtils';
 import { KpopCardComponent } from './KpopCard';
 import { useCardCollection } from '@/hooks/useCardCollection';
 import { useCollection } from '@/context/CollectionContext';
@@ -32,7 +33,7 @@ export function GachaMachine({
   freePullTimer,
   pullHistory,
 }: GachaMachineProps) {
-  const [isPulling, setIsPulling] = useState(false);
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'revealing' | 'multiRevealing'>('idle');
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
   const [revealedIndex, setRevealedIndex] = useState(-1);
   const [showMobileStats, setShowMobileStats] = useState(false);
@@ -41,54 +42,58 @@ export function GachaMachine({
   const { sparkCard } = useCollection();
 
   const handlePull = async (count: number) => {
-    if (isPulling) return;
+    if (pullState !== 'idle') return;
 
-    setIsPulling(true);
+    setPullState('pulling');
     setResults(null);
     setRevealedIndex(-1);
 
-    await new Promise(r => setTimeout(r, 1000));
+    // Initial machine shake/wait
+    await new Promise(r => setTimeout(r, 1500));
 
     const newResults = onPull(count);
     if (newResults.length === 0) {
-      setIsPulling(false);
+      setPullState('idle');
       return;
     }
 
     setResults(newResults);
 
-    for (let i = 0; i < newResults.length; i++) {
+    if (count === 1) {
+      setPullState('revealing');
+      setRevealedIndex(0);
+    } else {
+      setPullState('multiRevealing');
+      // Stagger reveal of icons in the grid
+      for (let i = 0; i < newResults.length; i++) {
         setRevealedIndex(i);
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 200));
+      }
     }
   };
 
   const handleFreePull = async () => {
-    if (isPulling || !canFreePull) return;
+    if (pullState !== 'idle' || !canFreePull) return;
 
-    setIsPulling(true);
+    setPullState('pulling');
     setResults(null);
     setRevealedIndex(-1);
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1500));
 
     const res = onFreePull();
     if (!res) {
-      setIsPulling(false);
+      setPullState('idle');
       return;
     }
 
     setResults([res]);
+    setPullState('revealing');
     setRevealedIndex(0);
   };
 
-  const currentRevealed = useMemo(() => {
-    if (!results || revealedIndex === -1) return null;
-    return results[revealedIndex];
-  }, [results, revealedIndex]);
-
   const closeResults = () => {
-    setIsPulling(false);
+    setPullState('idle');
     setResults(null);
     setRevealedIndex(-1);
   };
@@ -156,14 +161,14 @@ export function GachaMachine({
          <div className="relative w-full max-w-[280px] aspect-[3/4] flex items-center justify-center">
             <div className="absolute inset-0 bg-primary/5 rounded-3xl blur-[100px] animate-pulse" />
             <motion.div
-               animate={isPulling ? {
+               animate={pullState === 'pulling' ? {
                  rotate: [0, -5, 5, -5, 5, 0],
                  scale: [1, 1.05, 1, 1.05, 1],
                } : {}}
                transition={{ duration: 0.3, repeat: Infinity, repeatType: 'reverse' }}
                className="relative z-10 w-full h-full border-8 border-white/5 rounded-3xl bg-card-bg/40 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center"
             >
-               <Sparkles className={`w-24 h-24 transition-colors duration-1000 ${isPulling ? 'text-primary' : 'text-white/10'}`} />
+               <Sparkles className={`w-24 h-24 transition-colors duration-1000 ${pullState === 'pulling' ? 'text-primary' : 'text-white/10'}`} />
                <div className="mt-8">
                   <span className="text-white/20 text-xs font-black tracking-widest uppercase">
                      Gacha Machine
@@ -176,7 +181,7 @@ export function GachaMachine({
             <div className="flex gap-2">
                <button
                  onClick={() => handlePull(1)}
-                 disabled={isPulling || currency < PULL_COSTS.SINGLE}
+                 disabled={pullState !== 'idle' || currency < PULL_COSTS.SINGLE}
                  aria-label={`Single pull for ${PULL_COSTS.SINGLE} coins`}
                  className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all group focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
@@ -188,7 +193,7 @@ export function GachaMachine({
                </button>
                <button
                  onClick={() => handlePull(10)}
-                 disabled={isPulling || currency < PULL_COSTS.TEN}
+                 disabled={pullState !== 'idle' || currency < PULL_COSTS.TEN}
                  aria-label={`Ten pull for ${PULL_COSTS.TEN} coins`}
                  className="flex-[2] bg-gradient-to-br from-primary to-accent rounded-2xl py-4 flex flex-col items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
@@ -202,9 +207,9 @@ export function GachaMachine({
 
             <button
                onClick={handleFreePull}
-               disabled={!canFreePull || isPulling}
+               disabled={!canFreePull || pullState !== 'idle'}
                className={`w-full border-2 rounded-2xl py-3 text-xs font-black uppercase tracking-widest transition-all ${
-                 canFreePull && !isPulling
+                 canFreePull && pullState === 'idle'
                    ? 'border-accent text-accent hover:bg-accent/10'
                    : 'border-white/5 text-white/20 cursor-not-allowed'
                }`}
@@ -354,86 +359,150 @@ export function GachaMachine({
           </motion.div>
         )}
 
-        {results && results.length > 0 && (
+        {/* REVEAL OVERLAYS */}
+        {pullState === 'revealing' && results && results[0] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl p-6"
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl p-6 overflow-hidden"
           >
-             {results.length > 1 && (
-               <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-2">
-                  {results.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-10 h-1 rounded-full transition-all duration-500 ${i <= revealedIndex ? 'bg-primary' : 'bg-white/10'}`}
-                    />
-                  ))}
-               </div>
-             )}
-
-             <button
-               onClick={closeResults}
-               className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all"
+             <motion.div
+               key="single-reveal"
+               initial={{ rotateY: 180, scale: 0.5, opacity: 0 }}
+               animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+               transition={{ duration: 0.8, type: 'spring', bounce: 0.4 }}
+               className="relative flex flex-col items-center gap-10"
              >
-                <X className="w-6 h-6" />
-             </button>
+                <div className="relative group">
+                    <KpopCardComponent
+                      card={results[0].card}
+                      size="xl"
+                      isNew={results[0].isNewCard}
+                    />
 
-             <div className="relative w-full max-w-md aspect-[3/4] flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                  {currentRevealed && (
+                    {/* Grade Banner */}
                     <motion.div
-                      key={currentRevealed.card.instanceId}
-                      initial={{ rotateY: 180, scale: 0.8, opacity: 0 }}
-                      animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-                      exit={{ rotateY: -180, scale: 0.8, opacity: 0 }}
-                      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-                      className="w-full h-full flex flex-col items-center gap-8"
+                      initial={{ opacity: 0, y: 20, scale: 0.5 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.5, type: 'spring' }}
+                      className="absolute -top-12 left-1/2 -translate-x-1/2 px-8 py-2 rounded-full border-4 border-black shadow-2xl transform -rotate-3 z-50"
+                      style={{
+                        background: getGradeConfig(results[0].card.grade as Grade).gradient,
+                        color: 'white'
+                      }}
                     >
-                       <KpopCardComponent
-                         card={currentRevealed.card}
-                         size="xl"
-                         isNew={currentRevealed.isNewCard}
-                       />
-
-                       <div className="text-center">
-                          <motion.h2
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            className="text-4xl font-black italic tracking-tighter text-white uppercase"
-                          >
-                             {currentRevealed.isNewCard ? 'NEW UNLOCKED!' : 'OBTAINED!'}
-                          </motion.h2>
-                          {currentRevealed.isDuplicate && (
-                             <p className="text-accent text-sm font-bold uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
-                                <Coins className="w-4 h-4" />
-                                Converted: +{DUPLICATE_REWARDS[currentRevealed.card.grade as Grade || 'R']} Coins
-                             </p>
-                          )}
-                       </div>
+                        <span className="text-3xl font-black italic tracking-tighter uppercase whitespace-nowrap">
+                           {results[0].card.grade}{results[0].card.grade === 'UR' ? '!!!' : results[0].card.grade === 'SSR' ? '!!' : '!'}
+                        </span>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                </div>
 
-                {currentRevealed && (currentRevealed.card.grade === 'UR' || currentRevealed.card.grade === 'SSR') && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 1, 0] }}
-                    transition={{ duration: 0.4 }}
-                    className={`absolute inset-[-100%] z-[-1] blur-[100px] ${currentRevealed.card.grade === 'UR' ? 'bg-yellow-400/30' : 'bg-purple-400/30'}`}
-                  />
-                )}
+                <div className="text-center space-y-2">
+                   <motion.h2
+                     initial={{ y: 20, opacity: 0 }}
+                     animate={{ y: 0, opacity: 1 }}
+                     transition={{ delay: 0.7 }}
+                     className="text-4xl md:text-5xl font-black italic tracking-tighter text-white uppercase"
+                   >
+                      {results[0].card.name}
+                   </motion.h2>
+
+                   <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     transition={{ delay: 0.9 }}
+                   >
+                     {results[0].isNewCard ? (
+                        <span className="inline-block px-6 py-2 bg-green-500 text-black font-black text-sm rounded-full animate-bounce shadow-[0_0_20px_rgba(34,197,94,0.5)]">
+                           NEW COLLECTION
+                        </span>
+                     ) : (
+                        <div className="flex flex-col items-center gap-1">
+                           <span className="px-4 py-1 bg-white/10 text-white/40 font-black text-xs rounded-full uppercase tracking-widest">
+                              Duplicate Card
+                           </span>
+                           <span className="text-accent text-sm font-black flex items-center gap-1">
+                              <Coins className="w-3 h-3" />
+                              +{DUPLICATE_REWARDS[results[0].card.grade as Grade || 'R']} Coins Converted
+                           </span>
+                        </div>
+                     )}
+                   </motion.div>
+                </div>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2 }}
+                  onClick={closeResults}
+                  className="mt-4 px-12 py-4 bg-white text-black rounded-full font-black text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
+                >
+                  CONTINUE
+                </motion.button>
+             </motion.div>
+
+             {/* Rarity BG Effects */}
+             {(results[0].card.grade === 'UR' || results[0].card.grade === 'SSR') && (
+                <div className={`absolute inset-0 z-[-1] opacity-30 blur-[120px] animate-pulse ${results[0].card.grade === 'UR' ? 'bg-yellow-400' : 'bg-purple-600'}`} />
+             )}
+          </motion.div>
+        )}
+
+        {pullState === 'multiRevealing' && results && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/98 backdrop-blur-3xl p-6"
+          >
+             <div className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
+                {results.map((res, i) => (
+                   <motion.div
+                     key={res.card.instanceId}
+                     initial={{ scale: 0, rotateY: 180, opacity: 0 }}
+                     animate={i <= revealedIndex ? { scale: 1, rotateY: 0, opacity: 1 } : {}}
+                     transition={{ duration: 0.5, type: 'spring' }}
+                     className="relative"
+                   >
+                      <KpopCardComponent
+                        card={res.card}
+                        size="md"
+                        isNew={res.isNewCard}
+                      />
+                      {(res.card.grade === 'UR' || res.card.grade === 'SSR') && (
+                         <div className={`absolute inset-0 rounded-2xl ring-4 ring-offset-4 ring-offset-black animate-pulse ${res.card.grade === 'UR' ? 'ring-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.5)]' : 'ring-purple-400 shadow-[0_0_30px_rgba(192,132,252,0.5)]'}`} />
+                      )}
+                   </motion.div>
+                ))}
              </div>
 
              {revealedIndex === results.length - 1 && (
-               <motion.button
+               <motion.div
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
-                 onClick={closeResults}
-                 className="mt-12 px-16 py-5 bg-gradient-to-br from-primary to-accent rounded-full font-black text-2xl text-white shadow-2xl hover:scale-105 transition-transform"
+                 className="flex flex-col items-center gap-8"
                >
-                 CONFIRM
-               </motion.button>
+                  <div className="flex gap-4 items-center px-8 py-3 bg-white/5 rounded-full border border-white/10">
+                      {['UR', 'SSR', 'SR', 'R'].map(g => {
+                         const count = results.filter(r => r.card.grade === g).length;
+                         if (count === 0) return null;
+                         return (
+                            <div key={g} className="flex items-center gap-1.5 px-3 border-r border-white/10 last:border-0">
+                               <span className="w-2 h-2 rounded-full" style={{ background: getGradeConfig(g as Grade).borderColor }} />
+                               <span className="text-xs font-black text-white/60">{count} {g}</span>
+                            </div>
+                         );
+                      })}
+                  </div>
+
+                  <button
+                    onClick={closeResults}
+                    className="px-20 py-5 bg-gradient-to-r from-primary to-accent text-white rounded-full font-black text-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_20px_50px_rgba(255,45,120,0.3)]"
+                  >
+                    CONTINUE
+                  </button>
+               </motion.div>
              )}
           </motion.div>
         )}
