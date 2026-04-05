@@ -32,6 +32,15 @@ const INITIAL_BANNERS: Banner[] = [
     endDate: '2028-12-31',
     image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800',
   },
+  {
+    id: 'newcomer_1',
+    name: 'Newcomer Special',
+    type: 'newcomer',
+    description: 'Higher SR rates! Perfect for starting your collection.',
+    startDate: '2023-01-01',
+    endDate: '2028-12-31',
+    image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=800',
+  },
 ];
 
 import { useCollection } from '../context/CollectionContext';

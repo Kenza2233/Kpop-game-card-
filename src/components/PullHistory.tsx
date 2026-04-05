@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { History, Clock, Coins, Star, Layers, Search } from 'lucide-react';
 import { PullHistoryEntry, Grade } from '../lib/types';
 import { formatNumber } from '../lib/cardUtils';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface PullHistoryProps {
   history: PullHistoryEntry[];
@@ -97,7 +98,12 @@ export function PullHistory({ history, onCardClick }: PullHistoryProps) {
                        <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                              <div className="w-10 h-12 bg-white/5 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 relative">
-                                <img src={entry.card.image} alt="" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                                <ImageWithFallback
+                                  group={entry.card.group}
+                                  idol={entry.card.name}
+                                  alt=""
+                                  className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                />
                              </div>
                              <div>
                                 <p className="text-xs font-black text-white group-hover:text-primary transition-colors">{entry.card.name}</p>

@@ -63,7 +63,7 @@ const INITIAL_STATE: CollectionState = {
   version: CURRENT_VERSION,
   ownedCards: [],
   totalPulls: 0,
-  currency: 500,
+  currency: 1000,
   urPityCounter: 0,
   ssrPityCounter: 0,
   sparkPoints: {},
@@ -144,8 +144,18 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     return (currentCount - config.start + 1) * config.increase;
   }, []);
 
-  const getPullRates = useCallback((pullCountUR: number, pullCountSSR: number) => {
+  const getPullRates = useCallback((pullCountUR: number, pullCountSSR: number, bannerType?: BannerType) => {
     let rates = { ...BASE_RATES };
+
+    if (bannerType === 'newcomer') {
+      rates = {
+        'UR': 0.3,
+        'SSR': 4.7,
+        'SR': 40.0,
+        'R': 55.0,
+      };
+    }
+
     rates.UR += calculateSoftPity(pullCountUR, 'UR');
     rates.SSR += calculateSoftPity(pullCountSSR, 'SSR');
 
@@ -182,7 +192,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       grade = 'SSR';
       pityTriggered = true;
     } else {
-      const rates = getPullRates(urCounter, ssrCounter);
+      const rates = getPullRates(urCounter, ssrCounter, banner.type);
       const random = Math.random() * 100;
 
       if (random < rates.UR) grade = 'UR';

@@ -7,6 +7,7 @@ import { Banner, GachaPullResult, HARD_PITY, SOFT_PITY, PULL_COSTS, SPARK_COST, 
 import { KpopCardComponent } from './KpopCard';
 import { useCardCollection } from '@/hooks/useCardCollection';
 import { useCollection } from '@/context/CollectionContext';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface GachaMachineProps {
   banner: Banner;
@@ -29,6 +30,7 @@ export function GachaMachine({
   sparkPoints,
   canFreePull,
   freePullTimer,
+  pullHistory,
 }: GachaMachineProps) {
   const [isPulling, setIsPulling] = useState(false);
   const [results, setResults] = useState<GachaPullResult[] | null>(null);
@@ -138,7 +140,7 @@ export function GachaMachine({
              <div className="grid grid-cols-4 gap-3">
                 {rateUpCardsData.slice(0, 4).map(card => (
                    <div key={card?.id} className="aspect-[3/4] rounded-xl overflow-hidden border border-white/10 group relative">
-                      <img src={card?.image} alt={card?.name} className="w-full h-full object-cover" />
+                      {card && <ImageWithFallback group={card.group} idol={card.name} alt={card.name} className="w-full h-full object-cover" />}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
                          <span className="text-[8px] font-black text-white truncate">{card?.name}</span>
                       </div>
@@ -245,6 +247,50 @@ export function GachaMachine({
                 </button>
               )}
             </div>
+
+            {/* Recent Pulls Section */}
+            <div className="bg-white/5 border border-white/5 rounded-3xl p-5 shadow-xl">
+               <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Recent Pulls</span>
+                  <History className="w-3 h-3 text-white/20" />
+               </div>
+               <div className="flex gap-2 justify-between">
+                  {pullHistory.slice(0, 5).map((entry, i) => (
+                    <motion.div
+                      key={`${entry.card.instanceId}-${i}`}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className={`relative w-10 h-10 rounded-full border-2 p-0.5 ${
+                        entry.card.grade === 'UR' ? 'border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.3)]' :
+                        entry.card.grade === 'SSR' ? 'border-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.3)]' :
+                        entry.card.grade === 'SR' ? 'border-blue-400' : 'border-white/10'
+                      }`}
+                    >
+                       <div className="w-full h-full rounded-full overflow-hidden bg-slate-800">
+                          <ImageWithFallback
+                            group={entry.card.group}
+                            idol={entry.card.name}
+                            alt={entry.card.name}
+                            className="w-full h-full object-cover"
+                          />
+                       </div>
+                       <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-black flex items-center justify-center text-[6px] font-black text-white shadow-sm ${
+                          entry.card.grade === 'UR' ? 'bg-yellow-400' :
+                          entry.card.grade === 'SSR' ? 'bg-purple-400' :
+                          entry.card.grade === 'SR' ? 'bg-blue-400' : 'bg-slate-500'
+                       }`}>
+                          {entry.card.grade}
+                       </div>
+                    </motion.div>
+                  ))}
+                  {pullHistory.length === 0 && (
+                    <div className="w-full py-2 text-center text-[10px] font-bold text-white/10 uppercase tracking-widest">
+                       No pulls yet
+                    </div>
+                  )}
+               </div>
+            </div>
          </div>
 
          <button
@@ -296,7 +342,7 @@ export function GachaMachine({
                     }}
                     className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 hover:border-primary/50 transition-all"
                   >
-                    <img src={card.image} alt={card.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <ImageWithFallback group={card.group} idol={card.name} alt={card.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-end text-left">
                        <span className="text-[10px] font-black text-primary uppercase">{card.grade}</span>
                        <span className="text-xs font-bold text-white truncate">{card.name}</span>

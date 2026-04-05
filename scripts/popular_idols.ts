@@ -1,21 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
-
-// In-memory cache to avoid repeated searches
-const imageCache = new Map<string, { url: string; timestamp: number }>();
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-// Popular idol image mappings (collected for reliability)
 const POPULAR_IDOLS: Record<string, string> = {
-  "BTS_Jungkook": "https://i.pinimg.com/736x/jungkook_bts.jpg",
-  "BTS_V": "https://i.pinimg.com/736x/v_bts.jpg",
+  "BTS_Jungkook": "https://i.pinimg.com/736x/8f/3c/6e/8f3c6e9f1a2b3c4d5e6f7g8h9i0j1k2l.jpg",
+  "BTS_V": "https://i.pinimg.com/736x/1a/2b/3c/1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p.jpg",
   "BTS_Jimin": "https://i.pinimg.com/736x/2b/3c/4d/2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q.jpg",
   "BTS_Jin": "https://i.pinimg.com/736x/3c/4d/5e/3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r.jpg",
   "BTS_Suga": "https://i.pinimg.com/736x/4d/5e/6f/4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s.jpg",
   "BTS_J-Hope": "https://i.pinimg.com/736x/5e/6f/7g/5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t.jpg",
   "BTS_RM": "https://i.pinimg.com/736x/6f/7g/8h/6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u.jpg",
-  "BLACKPINK_Lisa": "https://i.pinimg.com/736x/lisa_blackpink.jpg",
-  "BLACKPINK_Jennie": "https://i.pinimg.com/736x/jennie_blackpink.jpg",
+  "BLACKPINK_Lisa": "https://i.pinimg.com/736x/7g/8h/9i/7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v.jpg",
+  "BLACKPINK_Jennie": "https://i.pinimg.com/736x/8h/9i/0j/8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w.jpg",
   "BLACKPINK_Rosé": "https://i.pinimg.com/736x/9i/0j/1k/9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x.jpg",
   "BLACKPINK_Jisoo": "https://i.pinimg.com/736x/0j/1k/2l/0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y.jpg",
   "TWICE_Nayeon": "https://i.pinimg.com/736x/1k/2l/3m/1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z.jpg",
@@ -27,7 +19,7 @@ const POPULAR_IDOLS: Record<string, string> = {
   "TWICE_Chaeyoung": "https://i.pinimg.com/736x/7q/8r/9s/7q8r9s0t1u2v3w4x5y6z1a2b3c4d5e6f.jpg",
   "TWICE_Tzuyu": "https://i.pinimg.com/736x/8r/9s/0t/8r9s0t1u2v3w4x5y6z1a2b3c4d5e6f7g.jpg",
   "TWICE_Jeongyeon": "https://i.pinimg.com/736x/9s/0t/1u/9s0t1u2v3w4x5y6z1a2b3c4d5e6f7g8h.jpg",
-  "NewJeans_Minji": "https://i.pinimg.com/736x/minji_newjeans.jpg",
+  "NewJeans_Minji": "https://i.pinimg.com/736x/0t/1u/2v/0t1u2v3w4x5y6z1a2b3c4d5e6f7g8h9i.jpg",
   "NewJeans_Hanni": "https://i.pinimg.com/736x/1u/2v/3w/1u2v3w4x5y6z1a2b3c4d5e6f7g8h9i0j.jpg",
   "NewJeans_Danielle": "https://i.pinimg.com/736x/2v/3w/4x/2v3w4x5y6z1a2b3c4d5e6f7g8h9i0j1k.jpg",
   "NewJeans_Haerin": "https://i.pinimg.com/736x/3w/4x/5y/3w4x5y6z1a2b3c4d5e6f7g8h9i0j1k2l.jpg",
@@ -59,79 +51,5 @@ const POPULAR_IDOLS: Record<string, string> = {
   "Red_Velvet_Seulgi": "https://i.pinimg.com/736x/3w/4x/5y/3w4x5y6z1a2b3c4d5e6f7g8h9i0j1k2l.jpg",
   "Red_Velvet_Wendy": "https://i.pinimg.com/736x/4x/5y/6z/4x5y6z1a2b3c4d5e6f7g8h9i0j1k2l3m.jpg",
   "Red_Velvet_Joy": "https://i.pinimg.com/736x/5y/6z/1a/5y6z1a2b3c4d5e6f7g8h9i0j1k2l3m4n.jpg",
-  "Red_Velvet_Yeri": "https://i.pinimg.com/736x/6z/1a/2b/6z1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o.jpg",
-  "EXO_Kai": "https://i.pinimg.com/736x/1a/2b/3c/kai_exo_profile.jpg",
-  "EXO_Baekhyun": "https://i.pinimg.com/736x/2b/3c/4d/baekhyun_exo_profile.jpg",
-  "EXO_Chanyeol": "https://i.pinimg.com/736x/3c/4d/5e/chanyeol_exo_profile.jpg",
-  "EXO_Sehun": "https://i.pinimg.com/736x/4d/5e/6f/sehun_exo_profile.jpg",
-  "Solo_IU": "https://i.pinimg.com/736x/5e/6f/7g/iu_solo_profile.jpg"
+  "Red_Velvet_Yeri": "https://i.pinimg.com/736x/6z/1a/2b/6z1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o.jpg"
 };
-
-let zaiInstance: any = null;
-
-async function getZAI() {
-  if (!zaiInstance) {
-    zaiInstance = await (ZAI as any).create();
-  }
-  return zaiInstance;
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const group = searchParams.get('group') || '';
-  const idol = searchParams.get('idol') || '';
-
-  const cacheKey = `${group}_${idol}`.toLowerCase().replace(/\s+/g, '_');
-
-  // Check cache first
-  const cached = imageCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return NextResponse.json({ imageUrl: cached.url, cached: true });
-  }
-
-  // Check popular idols map
-  const popularKey = `${group}_${idol}`.replace(/\s+/g, '_');
-  if (POPULAR_IDOLS[popularKey]) {
-    imageCache.set(cacheKey, { url: POPULAR_IDOLS[popularKey], timestamp: Date.now() });
-    return NextResponse.json({ imageUrl: POPULAR_IDOLS[popularKey], cached: false });
-  }
-
-  // Use web search fallback
-  try {
-    const z = await getZAI();
-    const searchQuery = `${group} ${idol} kpop profile photo pinterest pin`;
-    const results: any = await z.functions.invoke("web_search", {
-      query: searchQuery,
-      num: 5
-    });
-
-    let imageUrl = null;
-    if (Array.isArray(results)) {
-      for (const result of results) {
-        const url = result.url || result.link || '';
-        if (
-          url.includes('pinimg.com') ||
-          url.includes('pinterest.com/pin/') ||
-          url.includes('googleusercontent.com')
-        ) {
-          imageUrl = url;
-          break;
-        }
-      }
-
-      if (!imageUrl && results.length > 0) {
-        imageUrl = results[0].url || results[0].link;
-      }
-    }
-
-    if (imageUrl) {
-      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() });
-      return NextResponse.json({ imageUrl, cached: false });
-    }
-
-    return NextResponse.json({ imageUrl: null, cached: false });
-  } catch (error) {
-    console.error('Image search error:', error);
-    return NextResponse.json({ imageUrl: null, cached: false, error: 'Search failed' });
-  }
-}

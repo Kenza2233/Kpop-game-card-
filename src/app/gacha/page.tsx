@@ -58,7 +58,7 @@ export default function GachaPage() {
               sparkPoints={state.sparkPoints[currentBanner.id] || 0}
               canFreePull={canFreePull}
               freePullTimer={timer}
-              pullHistory={[]}
+              pullHistory={state.pullHistory}
            />
          )}
       </div>

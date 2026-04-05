@@ -15,8 +15,18 @@ export default function Home() {
   const { currentBanner } = useBanner();
   const { cards } = useCardCollection();
 
+  const { claimDailyBonus } = useCollection();
+
   const totalUnique = new Set(state.ownedCards.map(c => c.id)).size;
   const completionRate = (totalUnique / (cards?.length || 1)) * 100;
+
+  const handleClaimDaily = () => {
+    const res = claimDailyBonus();
+    alert(res.message);
+  };
+
+  const isDailyClaimed = state.lastDailyBonus &&
+    new Date(state.lastDailyBonus).toDateString() === new Date().toDateString();
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
@@ -103,9 +113,23 @@ export default function Home() {
                   <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Completion</span>
                   <span className="text-2xl font-black text-primary italic tracking-tighter">{Math.round(completionRate)}%</span>
                </div>
-               <div className="flex flex-col items-end">
+               <div className="flex flex-col items-center">
                   <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-1">Credits</span>
                   <span className="text-2xl font-black text-accent italic tracking-tighter">{formatNumber(state.currency)}</span>
+               </div>
+               <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">Daily Bonus</span>
+                  <button
+                    onClick={handleClaimDaily}
+                    disabled={!!isDailyClaimed}
+                    className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                      isDailyClaimed
+                        ? 'bg-white/5 text-white/20 cursor-not-allowed'
+                        : 'bg-accent text-black hover:scale-105 active:scale-95 shadow-lg shadow-accent/20'
+                    }`}
+                  >
+                    {isDailyClaimed ? 'CLAIMED' : 'CLAIM NOW'}
+                  </button>
                </div>
             </div>
          </div>

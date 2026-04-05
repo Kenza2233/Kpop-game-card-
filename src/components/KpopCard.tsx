@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { KpopCard, Grade } from '../lib/types';
 import { getGradeConfig } from '../lib/cardUtils';
+import { useIdolImage } from '../hooks/useIdolImage';
 
 interface KpopCardProps {
   card: KpopCard;
@@ -30,6 +31,7 @@ export const KpopCardComponent = React.memo(({
   isHolographic = false,
   isNew = false
 }: KpopCardProps) => {
+  const { imageUrl, isLoading, error } = useIdolImage(card.group, card.name);
   const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
@@ -64,9 +66,9 @@ export const KpopCardComponent = React.memo(({
     >
       {/* Background & Image */}
       <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-        {!imageError ? (
+        {(!imageError && imageUrl) ? (
           <Image
-            src={card.image}
+            src={imageUrl}
             alt={card.name}
             fill
             priority={size === 'xl'}
@@ -76,7 +78,11 @@ export const KpopCardComponent = React.memo(({
           />
         ) : (
           <div className={`w-full h-full flex flex-col items-center justify-center p-4`} style={{ background: gradeConfig.gradient }}>
-             <span className="text-4xl font-black text-white/50">{getInitials(card.name)}</span>
+             {isLoading ? (
+               <div className="animate-pulse flex items-center justify-center w-full h-full bg-white/5" />
+             ) : (
+               <span className="text-4xl font-black text-white/50">{getInitials(card.name)}</span>
+             )}
           </div>
         )}
       </div>
