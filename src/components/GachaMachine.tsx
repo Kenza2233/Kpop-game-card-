@@ -39,10 +39,14 @@ export function GachaMachine({
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [showSparkShop, setShowSparkShop] = useState(false);
   const { cards: allCards } = useCardCollection();
-  const { sparkCard } = useCollection();
+  const { sparkCard, state: collectionState } = useCollection();
+  const isUnlimited = collectionState.unlimitedMode;
 
   const handlePull = async (count: number) => {
     if (pullState !== 'idle') return;
+
+    const cost = isUnlimited ? 0 : (count === 10 ? PULL_COSTS.TEN : PULL_COSTS.SINGLE);
+    if (!isUnlimited && currency < cost) return;
 
     setPullState('pulling');
     setResults(null);
@@ -181,27 +185,33 @@ export function GachaMachine({
             <div className="flex gap-2">
                <button
                  onClick={() => handlePull(1)}
-                 disabled={pullState !== 'idle' || currency < PULL_COSTS.SINGLE}
+                 disabled={pullState !== 'idle' || (!isUnlimited && currency < PULL_COSTS.SINGLE)}
                  aria-label={`Single pull for ${PULL_COSTS.SINGLE} coins`}
                  className="flex-1 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all group focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-white/60">Single Pull</span>
                   <div className="flex items-center gap-1">
                      <Coins className="w-4 h-4 text-accent fill-accent/20" />
-                     <span className="text-lg font-black text-white">{PULL_COSTS.SINGLE}</span>
+                     <span className="text-lg font-black text-white">
+                        {isUnlimited ? 'FREE' : PULL_COSTS.SINGLE}
+                     </span>
                   </div>
+                  {isUnlimited && <span className="text-[8px] font-bold text-yellow-400 mt-1 uppercase tracking-tighter">Unlimited Mode</span>}
                </button>
                <button
                  onClick={() => handlePull(10)}
-                 disabled={pullState !== 'idle' || currency < PULL_COSTS.TEN}
+                 disabled={pullState !== 'idle' || (!isUnlimited && currency < PULL_COSTS.TEN)}
                  aria-label={`Ten pull for ${PULL_COSTS.TEN} coins`}
                  className="flex-[2] bg-gradient-to-br from-primary to-accent rounded-2xl py-4 flex flex-col items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/50"
                >
                   <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Ten Pull</span>
                   <div className="flex items-center gap-1">
                      <Coins className="w-4 h-4 text-white fill-white/20" />
-                     <span className="text-lg font-black text-white">{PULL_COSTS.TEN}</span>
+                     <span className="text-lg font-black text-white">
+                        {isUnlimited ? 'FREE' : PULL_COSTS.TEN}
+                     </span>
                   </div>
+                  {isUnlimited && <span className="text-[8px] font-bold text-white/80 mt-1 uppercase tracking-tighter">Unlimited Mode</span>}
                </button>
             </div>
 

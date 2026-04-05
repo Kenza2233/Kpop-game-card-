@@ -38,6 +38,7 @@ interface CollectionState {
   achievements: string[];
   dailyStreak: number;
   lastStreakDate: number | null;
+  unlimitedMode: boolean;
 }
 
 interface CollectionContextType {
@@ -54,6 +55,10 @@ interface CollectionContextType {
   exportCollection: () => string;
   importCollection: (data: string) => boolean;
   refreshData: () => Promise<void>;
+  showPasswordModal: boolean;
+  setShowPasswordModal: (show: boolean) => void;
+  tapLogo: () => void;
+  enterPassword: (password: string) => boolean;
 }
 
 const CURRENT_VERSION = 1;
@@ -74,6 +79,7 @@ const INITIAL_STATE: CollectionState = {
   achievements: [],
   dailyStreak: 0,
   lastStreakDate: null,
+  unlimitedMode: false,
 };
 
 const CollectionContext = createContext<CollectionContextType | undefined>(undefined);
@@ -83,6 +89,9 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CollectionState>(INITIAL_STATE);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [logoTapTimestamps, setLogoTapTimestamps] = useState<number[]>([]);
+
   const { checkAchievements } = useAchievements(state);
   const { addToast } = useAchievementToasts();
 
@@ -247,8 +256,8 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   }, [getPullRates, state.ownedCards, state.totalPulls]);
 
   const pullCard = useCallback((banner: Banner, count: number): GachaPullResult[] => {
-    const cost = count === 10 ? PULL_COSTS.TEN : PULL_COSTS.SINGLE;
-    if (state.currency < cost) {
+    const cost = state.unlimitedMode ? 0 : (count === 10 ? PULL_COSTS.TEN : PULL_COSTS.SINGLE);
+    if (!state.unlimitedMode && state.currency < cost) {
       alert('Not enough coins!');
       return [];
     }
@@ -289,7 +298,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
     const newState = {
         ...state,
-        currency: state.currency - cost,
+        currency: state.unlimitedMode ? 999999 : state.currency - cost,
         ownedCards: [...state.ownedCards, ...newOwnedCards],
         totalPulls: currentTotalPulls,
         urPityCounter: currentURPity,
@@ -372,7 +381,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
     const newState = {
       ...state,
-      currency: state.currency + amount,
+      currency: state.unlimitedMode ? 999999 : state.currency + amount,
       dailyStreak: newStreak,
       lastDailyBonus: Date.now(),
       lastStreakDate: Date.now()
@@ -413,7 +422,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       ownedCards: uniqueCards,
-      currency: prev.currency + coinsGained
+      currency: prev.unlimitedMode ? 999999 : prev.currency + coinsGained
     }));
 
     return { cardsRemoved, coinsGained };
@@ -457,6 +466,30 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const tapLogo = useCallback(() => {
+    const now = Date.now();
+    const newTimestamps = [...logoTapTimestamps, now].filter(t => now - t < 3000);
+
+    if (newTimestamps.length >= 3) {
+      setShowPasswordModal(true);
+      setLogoTapTimestamps([]);
+    } else {
+      setLogoTapTimestamps(newTimestamps);
+    }
+  }, [logoTapTimestamps]);
+
+  const enterPassword = useCallback((password: string): boolean => {
+    if (password === '9999') {
+      setState(prev => ({
+        ...prev,
+        currency: 999999,
+        unlimitedMode: true
+      }));
+      return true;
+    }
+    return false;
+  }, []);
+
   const exportCollection = useCallback(() => {
     return JSON.stringify(state);
   }, [state]);
@@ -489,7 +522,11 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         setActiveBanner,
         exportCollection,
         importCollection,
-        refreshData: loadData
+        refreshData: loadData,
+        showPasswordModal,
+        setShowPasswordModal,
+        tapLogo,
+        enterPassword
       }}
     >
       {children}

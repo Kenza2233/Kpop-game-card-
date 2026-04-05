@@ -63,6 +63,7 @@ export interface CollectionState {
   achievements: string[];
   dailyStreak: number;
   lastStreakDate: number | null;
+  unlimitedMode: boolean;
 }
 
 export type SortOption = 'name-asc' | 'name-desc' | 'grade-desc' | 'grade-asc' | 'newest' | 'group';
